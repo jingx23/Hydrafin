@@ -28,6 +28,16 @@ extension View {
     }
 
     /// - Important: This does nothing on tvOS.
+    @ViewBuilder
+    func navigationBarCloseButton(
+        disabled: Bool = false,
+        _ action: @escaping () -> Void
+    ) -> some View {
+        self
+    }
+
+    /// - Important: This does nothing on tvOS.
+    @ViewBuilder
     func statusBarHidden() -> some View {
         self
     }

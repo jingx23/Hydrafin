@@ -57,7 +57,7 @@ struct FocusGuideModifier: ViewModifier {
                 .focused($focusDirection, equals: .bottom)
         }
         .onChange(of: focusDirection) { _, focusDirection in
-            guard let focusDirection = focusDirection else { return }
+            guard let focusDirection else { return }
             switch focusDirection {
             case .top:
                 focusGuide.transition(to: focusConstructor.topTarget!)

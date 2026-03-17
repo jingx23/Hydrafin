@@ -11,7 +11,7 @@ import Foundation
 extension URL {
 
     init?(string: String?) {
-        guard let string = string else { return nil }
+        guard let string else { return nil }
         self.init(string: string)
     }
 }
@@ -31,6 +31,8 @@ extension URL {
     }
 
     static let swiftfinGithub: URL = URL(string: "https://github.com/jellyfin/Swiftfin")!
+
+    static let swiftfinGithubLicense: URL = URL(string: "https://github.com/jellyfin/Swiftfin/blob/main/LICENSE.md")!
 
     static let swiftfinGithubIssues: URL = URL(string: "https://github.com/jellyfin/Swiftfin/issues")!
 

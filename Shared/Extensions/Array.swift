@@ -16,9 +16,9 @@ extension Array {
 
     func appending(_ element: @autoclosure () -> Element, if condition: Bool) -> [Element] {
         if condition {
-            return self + [element()]
+            self + [element()]
         } else {
-            return self
+            self
         }
     }
 
@@ -36,9 +36,9 @@ extension Array {
 
     func prepending(_ element: @autoclosure () -> Element, if condition: Bool) -> [Element] {
         if condition {
-            return [element()] + self
+            [element()] + self
         } else {
-            return self
+            self
         }
     }
 
@@ -65,5 +65,13 @@ extension Array where Element: Equatable {
 
     mutating func removeAll(equalTo element: Element) {
         removeAll { $0 == element }
+    }
+
+    mutating func toggle(_ element: Element) {
+        if contains(element) {
+            removeAll(equalTo: element)
+        } else {
+            append(element)
+        }
     }
 }
