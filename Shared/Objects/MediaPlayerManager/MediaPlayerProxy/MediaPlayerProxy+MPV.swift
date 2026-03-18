@@ -121,6 +121,7 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
                 let id = subtitleTrackID(for: resolvedIndex, mediaSource: playbackItem.mediaSource)
             {
                 mpvController?.setSubtitleTrack(id: id)
+                mpvController?.setOption("sub-forced-events-only", value: stream.isForced == true ? "yes" : "no")
             }
         }
     }
@@ -194,10 +195,14 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
             return fallbackStreams.isEmpty ? nil : 1
         }()
 
+        let defaultSubtitleIdx = item.selectedSubtitleStreamIndex ?? mediaSource.defaultSubtitleStreamIndex
+        let defaultSubtitleStream = mediaSource.mediaStreams?.first {
+            $0.type == .subtitle && $0.index == defaultSubtitleIdx
+        }
+
         let mpvSubtitleTrackID: Int? = {
             guard !baseItem.isLiveStream else { return nil }
-            let defaultIdx = item.selectedSubtitleStreamIndex ?? mediaSource.defaultSubtitleStreamIndex
-            guard let defaultIdx, defaultIdx >= 0 else { return nil }
+            guard let defaultIdx = defaultSubtitleIdx, defaultIdx >= 0 else { return nil }
             let resolvedIndex = resolvedStreamIndex(
                 forIndex: defaultIdx,
                 streamType: .subtitle,
@@ -207,6 +212,8 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
             return subtitleTrackID(for: resolvedIndex, mediaSource: mediaSource)
         }()
 
+        let subtitleForcedEventsOnly = defaultSubtitleStream?.isForced == true
+
         let configuration = MPVPlayerConfiguration(
             url: item.url,
             startSeconds: baseItem.isLiveStream ? nil : startSeconds,
@@ -215,6 +222,7 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
             subtitleSize: 25 - Defaults[.VideoPlayer.Subtitle.subtitleSize],
             subtitleColor: Defaults[.VideoPlayer.Subtitle.subtitleColor],
             subtitleFontName: Defaults[.VideoPlayer.Subtitle.subtitleFontName],
+            subtitleForcedEventsOnly: subtitleForcedEventsOnly,
             externalSubtitles: item.subtitleStreams
                 .filter { $0.deliveryMethod == .external }
                 .compactMap { stream -> (url: URL, title: String)? in
@@ -412,6 +420,7 @@ struct MPVPlayerConfiguration {
     let subtitleSize: Int
     let subtitleColor: Color
     let subtitleFontName: String
+    let subtitleForcedEventsOnly: Bool
     let externalSubtitles: [(url: URL, title: String)]
 }
 
@@ -548,8 +557,8 @@ class MPVController: @unchecked Sendable {
         checkError(mpv_set_option_string(mpv, "video-align-y", "0"))
 
         // Subtitles
-        checkError(mpv_set_option_string(mpv, "subs-match-os-language", "yes"))
-        checkError(mpv_set_option_string(mpv, "subs-fallback", "yes"))
+        checkError(mpv_set_option_string(mpv, "subs-match-os-language", "no"))
+        checkError(mpv_set_option_string(mpv, "subs-fallback", "no"))
 
         // Audio passthrough (AC3, DTS, EAC3, TrueHD, Atmos)
         // TODO: make configurable via user settings, only works with real receivers
@@ -590,8 +599,8 @@ class MPVController: @unchecked Sendable {
         checkError(mpv_set_option_string(mpv, "video-align-y", "0"))
 
         // Subtitles
-        checkError(mpv_set_option_string(mpv, "subs-match-os-language", "yes"))
-        checkError(mpv_set_option_string(mpv, "subs-fallback", "yes"))
+        checkError(mpv_set_option_string(mpv, "subs-match-os-language", "no"))
+        checkError(mpv_set_option_string(mpv, "subs-fallback", "no"))
 
         // Audio passthrough (AC3, DTS, EAC3, TrueHD, Atmos)
         // TODO: make configurable via user settings, only works with real receivers
@@ -618,6 +627,7 @@ class MPVController: @unchecked Sendable {
         // Apply subtitle settings
         setOption("sub-font-size", value: "\(configuration.subtitleSize)")
         setOption("sub-font", value: configuration.subtitleFontName)
+        setOption("sub-forced-events-only", value: configuration.subtitleForcedEventsOnly ? "yes" : "no")
 
         let uiColor = UIColor(configuration.subtitleColor)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
