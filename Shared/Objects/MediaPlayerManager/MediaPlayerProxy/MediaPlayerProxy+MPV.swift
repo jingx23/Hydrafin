@@ -456,7 +456,7 @@ class MPVController: @unchecked Sendable {
 
         // Configure MPV options
         #if DEBUG
-        checkError(mpv_request_log_messages(mpv, "debug"))
+        checkError(mpv_request_log_messages(mpv, "warn"))
         #else
         checkError(mpv_request_log_messages(mpv, "no"))
         #endif
