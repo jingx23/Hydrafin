@@ -9,27 +9,12 @@
 import Factory
 import Foundation
 import JellyfinAPI
-import VLCUI
 
 extension MediaStream {
 
     typealias Property = (label: String, value: String)
 
     static var none: MediaStream = .init(displayTitle: L10n.none, index: -1)
-
-    var asVLCPlaybackChild: VLCVideoPlayer.PlaybackChild? {
-        guard let deliveryURL, let client = Container.shared.currentUserSession()?.client else { return nil }
-
-        let deliveryPath = deliveryURL.removingFirst(if: client.configuration.url.absoluteString.last == "/")
-
-        guard let fullURL = client.fullURL(with: deliveryPath) else { return nil }
-
-        return .init(
-            url: fullURL,
-            type: .subtitle,
-            enforce: false
-        )
-    }
 
     var is4kVideo: Bool {
         (width ?? 0) > 3800 && type == .video

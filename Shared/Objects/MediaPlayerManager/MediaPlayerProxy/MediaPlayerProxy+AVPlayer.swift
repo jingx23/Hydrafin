@@ -14,9 +14,9 @@ import JellyfinAPI
 import SwiftUI
 
 // TODO: After NativeVideoPlayer is removed, can move bindings and
-//       observers to AVPlayerView, like the VLC delegate
+//       observers to AVPlayerView
 //       - wouldn't need to have MediaPlayerProxy: MediaPlayerObserver
-// TODO: report playback information, see VLCUI.PlaybackInformation (dropped frames, etc.)
+// TODO: report playback information (dropped frames, etc.)
 // TODO: report buffering state
 // TODO: have set seconds with completion handler
 

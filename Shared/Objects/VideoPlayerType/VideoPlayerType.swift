@@ -8,13 +8,10 @@
 
 import JellyfinAPI
 
-// TODO: remove, change to VLC, AVPlayer
-
 enum VideoPlayerType: String, CaseIterable, Displayable, Storable {
 
     case mpv
     case native
-    case swiftfin
 
     var displayTitle: String {
         switch self {
@@ -22,8 +19,6 @@ enum VideoPlayerType: String, CaseIterable, Displayable, Storable {
             "MPV"
         case .native:
             L10n.native
-        case .swiftfin:
-            "Swiftfin"
         }
     }
 
@@ -33,8 +28,6 @@ enum VideoPlayerType: String, CaseIterable, Displayable, Storable {
             Self._mpvDirectPlayProfiles
         case .native:
             Self._nativeDirectPlayProfiles
-        case .swiftfin:
-            Self._swiftfinDirectPlayProfiles
         }
     }
 
@@ -44,8 +37,6 @@ enum VideoPlayerType: String, CaseIterable, Displayable, Storable {
             Self._mpvTranscodingProfiles
         case .native:
             Self._nativeTranscodingProfiles
-        case .swiftfin:
-            Self._swiftfinTranscodingProfiles
         }
     }
 
@@ -55,8 +46,6 @@ enum VideoPlayerType: String, CaseIterable, Displayable, Storable {
             Self._mpvSubtitleProfiles
         case .native:
             Self._nativeSubtitleProfiles
-        case .swiftfin:
-            Self._swiftfinSubtitleProfiles
         }
     }
 }

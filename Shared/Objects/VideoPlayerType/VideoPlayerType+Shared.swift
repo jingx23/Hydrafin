@@ -20,8 +20,6 @@ extension VideoPlayerType {
             Self._mpvCodecProfiles
         case .native:
             Self._nativeCodecProfiles
-        case .swiftfin:
-            Self._swiftfinCodecProfiles
         }
     }
 

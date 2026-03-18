@@ -326,15 +326,6 @@
       }
     },
     {
-      "identity" : "vlcui",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/LePips/VLCUI",
-      "state" : {
-        "revision" : "9850f460ce5f4154979d17aeae92674c1632ff53",
-        "version" : "0.7.4"
-      }
-    },
-    {
       "identity" : "xctest-dynamic-overlay",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",

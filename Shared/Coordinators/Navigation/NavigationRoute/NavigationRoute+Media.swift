@@ -87,10 +87,6 @@ extension NavigationRoute {
     }
 }
 
-// TODO: shim until native vs swiftfin player is replace with vlc vs av layers
-//       - when removed, ensure same behavior with safe area
-//       - may just need to make a VC wrapper to capture them
-
 struct VideoPlayerViewShim: View {
 
     @State
@@ -101,8 +97,6 @@ struct VideoPlayerViewShim: View {
     var body: some View {
         Group {
             switch Defaults[.VideoPlayer.videoPlayerType] {
-            case .swiftfin:
-                VideoPlayer()
             case .mpv:
                 MPVVideoPlayer()
             case .native:

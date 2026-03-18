@@ -11,7 +11,6 @@ import Defaults
 import Factory
 import Foundation
 import JellyfinAPI
-import VLCUI
 
 // TODO: proper error catching
 
@@ -224,7 +223,6 @@ final class MediaPlayerManager: ViewModel {
 
         // Ended should represent natural ending of playback, which
         // is verifiable by given seconds being near item runtime.
-        // VLC proxy will send ended early.
         guard let runtime = item.runtime else {
             await self.stop()
             return

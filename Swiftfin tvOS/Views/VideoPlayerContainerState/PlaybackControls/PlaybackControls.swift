@@ -9,7 +9,6 @@
 import Defaults
 import PreferencesView
 import SwiftUI
-import VLCUI
 
 extension VideoPlayer {
 
