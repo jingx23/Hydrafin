@@ -496,47 +496,6 @@ class MPVController: @unchecked Sendable {
         }, Unmanaged.passUnretained(self).toOpaque())
     }
 
-    /* func setupMpv() {
-         mpv = mpv_create()
-         guard mpv != nil else {
-             print("MPV: Failed creating context")
-             return
-         }
-
-         #if DEBUG
-         checkError(mpv_request_log_messages(mpv, "warn"))
-         #else
-         checkError(mpv_request_log_messages(mpv, "no"))
-         #endif
-
-         checkError(mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &metalLayer))
-
-         #if os(iOS)
-         setupMpvIOS()
-         #elseif os(tvOS)
-         setupMpvTVOS()
-         #endif
-
-         print("MPV: about to call mpv_initialize")
-         checkError(mpv_initialize(mpv))
-         print("MPV: mpv_initialize done")
-
-         // Observe properties
-         mpv_observe_property(mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG)
-         mpv_observe_property(mpv, 1, "time-pos", MPV_FORMAT_DOUBLE)
-         mpv_observe_property(mpv, 2, "video-params/w", MPV_FORMAT_INT64)
-         mpv_observe_property(mpv, 3, "video-params/h", MPV_FORMAT_INT64)
-         mpv_observe_property(mpv, 4, "pause", MPV_FORMAT_FLAG)
-         mpv_observe_property(mpv, 5, "eof-reached", MPV_FORMAT_FLAG)
-         mpv_observe_property(mpv, 6, "core-idle", MPV_FORMAT_FLAG)
-
-         mpv_set_wakeup_callback(mpv, { ctx in
-             guard let ctx else { return }
-             let controller = Unmanaged<MPVController>.fromOpaque(ctx).takeUnretainedValue()
-             controller.readEvents()
-         }, Unmanaged.passUnretained(self).toOpaque())
-     } */
-
     #if os(iOS)
     private func setupMpvIOS() {
         // Video output and rendering
@@ -566,7 +525,6 @@ class MPVController: @unchecked Sendable {
 
         // Other options
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"))
-        checkError(mpv_set_option_string(mpv, "ytdl", "no"))
 
         // Buffering
         checkError(mpv_set_option_string(mpv, "cache", "yes"))
@@ -854,15 +812,6 @@ class MPVController: @unchecked Sendable {
         }
     }
 
-    /// Sets an mpv option, logging but not failing if the option is unavailable.
-    private func setOptionString(_ name: String, _ value: String) {
-        guard mpv != nil else { return }
-        let status = mpv_set_option_string(mpv, name, value)
-        if status < 0 {
-            print("MPV: option '\(name)' = '\(value)' failed: \(String(cString: mpv_error_string(status)))")
-        }
-    }
-
     private func checkError(_ status: CInt) {
         if status < 0 {
             print("MPV API error: \(String(cString: mpv_error_string(status)))")
@@ -929,13 +878,11 @@ final class MPVMetalViewController: UIViewController {
 
         let metalLayer = controller.metalLayer
 
-        // Configure metal layer
         metalLayer.frame = view.bounds
         #if os(iOS)
         metalLayer.contentsScale = UIScreen.main.nativeScale
         metalLayer.pixelFormat = .bgra8Unorm
         metalLayer.allowsNextDrawableTimeout = false
-        view.layer.sublayers?.forEach { $0.removeFromSuperlayer() }
         #elseif os(tvOS)
         metalLayer.contentsScale = UIScreen.main.scale
         #endif
@@ -947,13 +894,37 @@ final class MPVMetalViewController: UIViewController {
         proxy.attachController(controller)
     }
 
+    private var lastBoundsSize: CGSize = .zero
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
+        let metalLayer = controller.metalLayer
+        let bounds = view.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+
+        #if os(iOS)
+        let scale = UIScreen.main.nativeScale
+        #elseif os(tvOS)
+        let scale = UIScreen.main.scale
+        #endif
+
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        controller.metalLayer.frame = view.bounds
+        metalLayer.frame = bounds
+        // Sublayers don't auto-update drawableSize from frame — set explicitly
+        metalLayer.drawableSize = CGSize(
+            width: bounds.width * scale,
+            height: bounds.height * scale
+        )
         CATransaction.commit()
+
+        // If size actually changed (rotation), force mpv to reinitialize video output
+        if lastBoundsSize != .zero, lastBoundsSize != bounds.size {
+            controller.command("set", args: ["vid", "no"], checkForErrors: false)
+            controller.command("set", args: ["vid", "auto"], checkForErrors: false)
+        }
+        lastBoundsSize = bounds.size
     }
 
     deinit {

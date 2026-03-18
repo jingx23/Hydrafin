@@ -22,11 +22,29 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
            let topViewController = scene.keyWindow?.rootViewController,
            let presentedViewController = topViewController.presentedViewController,
-           let preferencesHostingController = presentedViewController as? UIPreferencesHostingController
+           let preferencesHostingController = findPreferencesHostingController(from: presentedViewController)
         {
             return preferencesHostingController.supportedInterfaceOrientations
         }
 
         return UIDevice.isPad ? .allButUpsideDown : .portrait
+    }
+
+    private func findPreferencesHostingController(from viewController: UIViewController) -> UIPreferencesHostingController? {
+        if let controller = viewController as? UIPreferencesHostingController {
+            return controller
+        }
+
+        for child in viewController.children {
+            if let found = findPreferencesHostingController(from: child) {
+                return found
+            }
+        }
+
+        if let presented = viewController.presentedViewController {
+            return findPreferencesHostingController(from: presented)
+        }
+
+        return nil
     }
 }
