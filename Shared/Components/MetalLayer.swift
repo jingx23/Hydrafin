@@ -19,22 +19,21 @@ import AppKit
 // the presentation, this causes flicker and the drawableSize possibly staying at 1x1
 // https://github.com/mpv-player/mpv/pull/13651
 
-@MainActor
 class MetalLayer: CAMetalLayer {
 
-    override nonisolated(unsafe) init() {
+    override init() {
         super.init()
     }
 
-    required nonisolated(unsafe) init?(coder: NSCoder) {
+    required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
 
-    override nonisolated(unsafe) init(layer: Any) {
+    override init(layer: Any) {
         super.init(layer: layer)
     }
 
-    override nonisolated(unsafe) var drawableSize: CGSize {
+    override var drawableSize: CGSize {
         get { super.drawableSize }
         set {
             if Int(newValue.width) > 1 && Int(newValue.height) > 1 {

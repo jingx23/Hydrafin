@@ -443,26 +443,93 @@ class MPVController: @unchecked Sendable {
 
     nonisolated(unsafe) weak var delegate: (any MPVControllerDelegate)?
 
-    let metalLayer = MetalLayer()
+    var metalLayer = MetalLayer()
 
     init() {}
 
     func setupMpv() {
         mpv = mpv_create()
-        guard mpv != nil else {
-            print("MPV: Failed creating context")
+        if mpv == nil {
+            print("Failed creating MPV context")
             return
         }
 
+        // Configure MPV options
         #if DEBUG
-        checkError(mpv_request_log_messages(mpv, "warn"))
+        checkError(mpv_request_log_messages(mpv, "debug"))
         #else
         checkError(mpv_request_log_messages(mpv, "no"))
         #endif
 
-        var layerPtr = metalLayer
-        checkError(mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &layerPtr))
+        checkError(mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &metalLayer))
 
+        #if os(iOS)
+        setupMpvIOS()
+        #elseif os(tvOS)
+        setupMpvTVOS()
+        #endif
+
+        checkError(mpv_initialize(mpv))
+
+        // Observe properties
+        mpv_observe_property(mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG)
+        mpv_observe_property(mpv, 1, "time-pos", MPV_FORMAT_DOUBLE)
+        mpv_observe_property(mpv, 2, "video-params/w", MPV_FORMAT_INT64)
+        mpv_observe_property(mpv, 3, "video-params/h", MPV_FORMAT_INT64)
+        mpv_observe_property(mpv, 4, "pause", MPV_FORMAT_FLAG)
+        mpv_observe_property(mpv, 5, "eof-reached", MPV_FORMAT_FLAG)
+        mpv_observe_property(mpv, 6, "core-idle", MPV_FORMAT_FLAG)
+
+        mpv_set_wakeup_callback(mpv, { ctx in
+            guard let ctx else { return }
+            let controller = Unmanaged<MPVController>.fromOpaque(ctx).takeUnretainedValue()
+            controller.readEvents()
+        }, Unmanaged.passUnretained(self).toOpaque())
+    }
+
+    /* func setupMpv() {
+         mpv = mpv_create()
+         guard mpv != nil else {
+             print("MPV: Failed creating context")
+             return
+         }
+
+         #if DEBUG
+         checkError(mpv_request_log_messages(mpv, "warn"))
+         #else
+         checkError(mpv_request_log_messages(mpv, "no"))
+         #endif
+
+         checkError(mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &metalLayer))
+
+         #if os(iOS)
+         setupMpvIOS()
+         #elseif os(tvOS)
+         setupMpvTVOS()
+         #endif
+
+         print("MPV: about to call mpv_initialize")
+         checkError(mpv_initialize(mpv))
+         print("MPV: mpv_initialize done")
+
+         // Observe properties
+         mpv_observe_property(mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG)
+         mpv_observe_property(mpv, 1, "time-pos", MPV_FORMAT_DOUBLE)
+         mpv_observe_property(mpv, 2, "video-params/w", MPV_FORMAT_INT64)
+         mpv_observe_property(mpv, 3, "video-params/h", MPV_FORMAT_INT64)
+         mpv_observe_property(mpv, 4, "pause", MPV_FORMAT_FLAG)
+         mpv_observe_property(mpv, 5, "eof-reached", MPV_FORMAT_FLAG)
+         mpv_observe_property(mpv, 6, "core-idle", MPV_FORMAT_FLAG)
+
+         mpv_set_wakeup_callback(mpv, { ctx in
+             guard let ctx else { return }
+             let controller = Unmanaged<MPVController>.fromOpaque(ctx).takeUnretainedValue()
+             controller.readEvents()
+         }, Unmanaged.passUnretained(self).toOpaque())
+     } */
+
+    #if os(iOS)
+    private func setupMpvIOS() {
         // Video output and rendering
         checkError(mpv_set_option_string(mpv, "vo", "gpu-next"))
         checkError(mpv_set_option_string(mpv, "gpu-api", "vulkan"))
@@ -484,6 +551,10 @@ class MPVController: @unchecked Sendable {
         checkError(mpv_set_option_string(mpv, "subs-match-os-language", "yes"))
         checkError(mpv_set_option_string(mpv, "subs-fallback", "yes"))
 
+        // Audio passthrough (AC3, DTS, EAC3, TrueHD, Atmos)
+        // TODO: make configurable via user settings, only works with real receivers
+        // checkError(mpv_set_option_string(mpv, "audio-spdif", "ac3,dts,eac3,truehd"))
+
         // Other options
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"))
         checkError(mpv_set_option_string(mpv, "ytdl", "no"))
@@ -497,24 +568,49 @@ class MPVController: @unchecked Sendable {
         // Smooth playback
         checkError(mpv_set_option_string(mpv, "video-sync", "audio"))
         checkError(mpv_set_option_string(mpv, "interpolation", "no"))
-
-        checkError(mpv_initialize(mpv))
-
-        // Observe properties
-        mpv_observe_property(mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG)
-        mpv_observe_property(mpv, 1, "time-pos", MPV_FORMAT_DOUBLE)
-        mpv_observe_property(mpv, 2, "video-params/w", MPV_FORMAT_INT64)
-        mpv_observe_property(mpv, 3, "video-params/h", MPV_FORMAT_INT64)
-        mpv_observe_property(mpv, 4, "pause", MPV_FORMAT_FLAG)
-        mpv_observe_property(mpv, 5, "eof-reached", MPV_FORMAT_FLAG)
-        mpv_observe_property(mpv, 6, "core-idle", MPV_FORMAT_FLAG)
-
-        mpv_set_wakeup_callback(mpv, { ctx in
-            guard let ctx else { return }
-            let controller = Unmanaged<MPVController>.fromOpaque(ctx).takeUnretainedValue()
-            controller.readEvents()
-        }, Unmanaged.passUnretained(self).toOpaque())
     }
+    #endif
+
+    #if os(tvOS)
+    private func setupMpvTVOS() {
+        // Video output and rendering
+        checkError(mpv_set_option_string(mpv, "vo", "gpu-next"))
+        checkError(mpv_set_option_string(mpv, "gpu-api", "vulkan"))
+        checkError(mpv_set_option_string(mpv, "hwdec", "videotoolbox"))
+
+        // Video scaling and positioning
+        checkError(mpv_set_option_string(mpv, "video-aspect-override", "no"))
+        checkError(mpv_set_option_string(mpv, "video-unscaled", "no"))
+        checkError(mpv_set_option_string(mpv, "keepaspect", "yes"))
+        checkError(mpv_set_option_string(mpv, "panscan", "0.0"))
+        checkError(mpv_set_option_string(mpv, "video-zoom", "0"))
+        checkError(mpv_set_option_string(mpv, "video-pan-x", "0"))
+        checkError(mpv_set_option_string(mpv, "video-pan-y", "0"))
+        checkError(mpv_set_option_string(mpv, "video-align-x", "0"))
+        checkError(mpv_set_option_string(mpv, "video-align-y", "0"))
+
+        // Subtitles
+        checkError(mpv_set_option_string(mpv, "subs-match-os-language", "yes"))
+        checkError(mpv_set_option_string(mpv, "subs-fallback", "yes"))
+
+        // Audio passthrough (AC3, DTS, EAC3, TrueHD, Atmos)
+        // TODO: make configurable via user settings, only works with real receivers
+        // checkError(mpv_set_option_string(mpv, "audio-spdif", "ac3,dts,eac3,truehd"))
+
+        // Other options
+        checkError(mpv_set_option_string(mpv, "video-rotate", "no"))
+
+        // Buffering
+        checkError(mpv_set_option_string(mpv, "cache", "yes"))
+        checkError(mpv_set_option_string(mpv, "cache-secs", "60"))
+        checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "200M"))
+        checkError(mpv_set_option_string(mpv, "demuxer-readahead-secs", "30"))
+
+        // Smooth playback
+        checkError(mpv_set_option_string(mpv, "video-sync", "audio"))
+        checkError(mpv_set_option_string(mpv, "interpolation", "no"))
+    }
+    #endif
 
     func loadFile(_ configuration: MPVPlayerConfiguration) {
         guard mpv != nil else { return }
@@ -748,6 +844,15 @@ class MPVController: @unchecked Sendable {
         }
     }
 
+    /// Sets an mpv option, logging but not failing if the option is unavailable.
+    private func setOptionString(_ name: String, _ value: String) {
+        guard mpv != nil else { return }
+        let status = mpv_set_option_string(mpv, name, value)
+        if status < 0 {
+            print("MPV: option '\(name)' = '\(value)' failed: \(String(cString: mpv_error_string(status)))")
+        }
+    }
+
     private func checkError(_ status: CInt) {
         if status < 0 {
             print("MPV API error: \(String(cString: mpv_error_string(status)))")
@@ -818,15 +923,14 @@ final class MPVMetalViewController: UIViewController {
         metalLayer.frame = view.bounds
         #if os(iOS)
         metalLayer.contentsScale = UIScreen.main.nativeScale
+        metalLayer.pixelFormat = .bgra8Unorm
+        metalLayer.allowsNextDrawableTimeout = false
+        view.layer.sublayers?.forEach { $0.removeFromSuperlayer() }
         #elseif os(tvOS)
         metalLayer.contentsScale = UIScreen.main.scale
         #endif
         metalLayer.framebufferOnly = true
         metalLayer.backgroundColor = UIColor.black.cgColor
-        metalLayer.pixelFormat = .bgra8Unorm
-        metalLayer.allowsNextDrawableTimeout = false
-
-        view.layer.sublayers?.forEach { $0.removeFromSuperlayer() }
         view.layer.addSublayer(metalLayer)
 
         controller.setupMpv()
