@@ -37,17 +37,6 @@ jobs:
       - name: Install SwiftGen
         run: brew install swiftgen
 
-      - name: Cache Carthage
-        uses: actions/cache@v4
-        id: carthage-cache
-        with:
-          path: Carthage
-          key: ${{ runner.os }}-carthage-${{ hashFiles('**/Cartfile.resolved') }}
-          restore-keys: ${{ runner.os }}-carthage-
-
-      - name: Update Carthage
-        run: carthage update --use-xcframeworks --cache-builds
-
       # FIXME: caches would keep failed compiles?
 
       # - name: Cache Swift packages

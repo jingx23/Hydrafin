@@ -24,9 +24,6 @@ jobs:
     - name: Install SwiftGen
       run: brew install swiftgen
 
-    - name: Update Carthage
-      run: carthage update --use-xcframeworks --cache-builds
-
     - name: Install the Apple certificate and provisioning profile
       env:
         BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
