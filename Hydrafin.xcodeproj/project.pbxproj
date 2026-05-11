@@ -116,7 +116,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		535870602669D21600D05A09 /* Swiftfin tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Swiftfin tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		535870602669D21600D05A09 /* Hydrafin tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Hydrafin tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5362E4A7267D4067000E2F71 /* GoogleCast.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GoogleCast.framework; path = "../../Downloads/GoogleCastSDK-ios-4.6.0_dynamic/GoogleCast.framework"; sourceTree = "<group>"; };
 		5362E4AA267D40AD000E2F71 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		5362E4AC267D40B1000E2F71 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
@@ -134,7 +134,7 @@
 		5362E4C4267D40F0000E2F71 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		5362E4C6267D40F4000E2F71 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		5362E4C8267D40F7000E2F71 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
-		5377CBF1263B596A003A4E83 /* Swiftfin iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Swiftfin iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5377CBF1263B596A003A4E83 /* Hydrafin iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Hydrafin iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		53ABFDDB267972BF00886593 /* TVServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = TVServices.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS15.0.sdk/System/Library/Frameworks/TVServices.framework; sourceTree = DEVELOPER_DIR; };
 		62666E0027E5016900EC0ECD /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		62666E0527E5017A00EC0ECD /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
@@ -175,14 +175,14 @@
 			membershipExceptions = (
 				Resources/Info.plist,
 			);
-			target = 5377CBF0263B596A003A4E83 /* Swiftfin iOS */;
+			target = 5377CBF0263B596A003A4E83 /* Hydrafin iOS */;
 		};
 		E14561A32DFCAE51008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Resources/Assets.xcassets,
 			);
-			target = 5358705F2669D21600D05A09 /* Swiftfin tvOS */;
+			target = 5358705F2669D21600D05A09 /* Hydrafin tvOS */;
 		};
 		E14565D92DFCAE6E008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -211,14 +211,14 @@
 				ViewModels/QuickConnectAuthorizeViewModel.swift,
 				ViewModels/ServerCheckViewModel.swift,
 			);
-			target = 5358705F2669D21600D05A09 /* Swiftfin tvOS */;
+			target = 5358705F2669D21600D05A09 /* Hydrafin tvOS */;
 		};
 		E14567272DFCAEFD008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Resources/Info.plist,
 			);
-			target = 5358705F2669D21600D05A09 /* Swiftfin tvOS */;
+			target = 5358705F2669D21600D05A09 /* Hydrafin tvOS */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -226,7 +226,7 @@
 		E14560852DFCAE51008FF700 /* Swiftfin */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14561A22DFCAE51008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, E14561A32DFCAE51008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Swiftfin; sourceTree = "<group>"; };
 		E14563272DFCAE6E008FF700 /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14565D92DFCAE6E008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Shared; sourceTree = "<group>"; };
 		E14565DD2DFCAE78008FF700 /* Scripts */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Scripts; sourceTree = "<group>"; };
-		E145669F2DFCAEFD008FF700 /* Swiftfin tvOS */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14567272DFCAEFD008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "Swiftfin tvOS"; sourceTree = "<group>"; };
+		E145669F2DFCAEFD008FF700 /* Hydrafin tvOS */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14567272DFCAEFD008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "Swiftfin tvOS"; sourceTree = "<group>"; };
 		E1456FC82DFCB323008FF700 /* Translations */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Translations; sourceTree = "<group>"; };
 		E150B7D12DFF2E7C00DC7CF4 /* XcodeConfig */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = XcodeConfig; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -359,7 +359,7 @@
 			isa = PBXGroup;
 			children = (
 				E14560852DFCAE51008FF700 /* Swiftfin */,
-				E145669F2DFCAEFD008FF700 /* Swiftfin tvOS */,
+				E145669F2DFCAEFD008FF700 /* Hydrafin tvOS */,
 				E14563272DFCAE6E008FF700 /* Shared */,
 				E1456FC82DFCB323008FF700 /* Translations */,
 				5377CBF2263B596A003A4E83 /* Products */,
@@ -372,8 +372,8 @@
 		5377CBF2263B596A003A4E83 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5377CBF1263B596A003A4E83 /* Swiftfin iOS.app */,
-				535870602669D21600D05A09 /* Swiftfin tvOS.app */,
+				5377CBF1263B596A003A4E83 /* Hydrafin iOS.app */,
+				535870602669D21600D05A09 /* Hydrafin tvOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -437,9 +437,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		5358705F2669D21600D05A09 /* Swiftfin tvOS */ = {
+		5358705F2669D21600D05A09 /* Hydrafin tvOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 535870712669D21700D05A09 /* Build configuration list for PBXNativeTarget "Swiftfin tvOS" */;
+			buildConfigurationList = 535870712669D21700D05A09 /* Build configuration list for PBXNativeTarget "Hydrafin tvOS" */;
 			buildPhases = (
 				4EC71FBD2D1620AF00D0B3A8 /* Alphabetize Strings */,
 				6286F0A3271C0ABA00C40ED5 /* Run Swiftgen.swift */,
@@ -455,11 +455,11 @@
 			);
 			fileSystemSynchronizedGroups = (
 				E14563272DFCAE6E008FF700 /* Shared */,
-				E145669F2DFCAEFD008FF700 /* Swiftfin tvOS */,
+				E145669F2DFCAEFD008FF700 /* Hydrafin tvOS */,
 				E1456FC82DFCB323008FF700 /* Translations */,
 				E150B7D12DFF2E7C00DC7CF4 /* XcodeConfig */,
 			);
-			name = "Swiftfin tvOS";
+			name = "Hydrafin tvOS";
 			packageProductDependencies = (
 				E13DD3CC27164CA7009D4DAF /* CoreStore */,
 				E12186DD2718F1C50010884C /* Defaults */,
@@ -489,12 +489,12 @@
 				43A6D0472F38D52100A89054 /* MPVKit-GPL */,
 			);
 			productName = "JellyfinPlayer tvOS";
-			productReference = 535870602669D21600D05A09 /* Swiftfin tvOS.app */;
+			productReference = 535870602669D21600D05A09 /* Hydrafin tvOS.app */;
 			productType = "com.apple.product-type.application";
 		};
-		5377CBF0263B596A003A4E83 /* Swiftfin iOS */ = {
+		5377CBF0263B596A003A4E83 /* Hydrafin iOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5377CC1B263B596B003A4E83 /* Build configuration list for PBXNativeTarget "Swiftfin iOS" */;
+			buildConfigurationList = 5377CC1B263B596B003A4E83 /* Build configuration list for PBXNativeTarget "Hydrafin iOS" */;
 			buildPhases = (
 				4EC71FBC2D16201C00D0B3A8 /* Alphabetize Strings */,
 				6286F09E271C093000C40ED5 /* Run Swiftgen.swift */,
@@ -514,7 +514,7 @@
 				E1456FC82DFCB323008FF700 /* Translations */,
 				E150B7D12DFF2E7C00DC7CF4 /* XcodeConfig */,
 			);
-			name = "Swiftfin iOS";
+			name = "Hydrafin iOS";
 			packageProductDependencies = (
 				E13DD3C52716499E009D4DAF /* CoreStore */,
 				E13DD3D227168E65009D4DAF /* Defaults */,
@@ -564,7 +564,7 @@
 				43A6D0452F38D4F500A89054 /* MPVKit-GPL */,
 			);
 			productName = JellyfinPlayer;
-			productReference = 5377CBF1263B596A003A4E83 /* Swiftfin iOS.app */;
+			productReference = 5377CBF1263B596A003A4E83 /* Hydrafin iOS.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -588,7 +588,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 5377CBEC263B596A003A4E83 /* Build configuration list for PBXProject "Swiftfin" */;
+			buildConfigurationList = 5377CBEC263B596A003A4E83 /* Build configuration list for PBXProject "Hydrafin" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -679,8 +679,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				5377CBF0263B596A003A4E83 /* Swiftfin iOS */,
-				5358705F2669D21600D05A09 /* Swiftfin tvOS */,
+				5377CBF0263B596A003A4E83 /* Hydrafin iOS */,
+				5358705F2669D21600D05A09 /* Hydrafin tvOS */,
 			);
 		};
 /* End PBXProject section */
@@ -1145,7 +1145,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		535870712669D21700D05A09 /* Build configuration list for PBXNativeTarget "Swiftfin tvOS" */ = {
+		535870712669D21700D05A09 /* Build configuration list for PBXNativeTarget "Hydrafin tvOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				535870722669D21700D05A09 /* Debug */,
@@ -1154,7 +1154,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5377CBEC263B596A003A4E83 /* Build configuration list for PBXProject "Swiftfin" */ = {
+		5377CBEC263B596A003A4E83 /* Build configuration list for PBXProject "Hydrafin" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5377CC19263B596B003A4E83 /* Debug */,
@@ -1163,7 +1163,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5377CC1B263B596B003A4E83 /* Build configuration list for PBXNativeTarget "Swiftfin iOS" */ = {
+		5377CC1B263B596B003A4E83 /* Build configuration list for PBXNativeTarget "Hydrafin iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5377CC1C263B596B003A4E83 /* Debug */,

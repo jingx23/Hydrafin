@@ -87,8 +87,8 @@ git merge upstream/main
 ### Step 1 — before resolving any conflicts, snapshot custom deps
 
 ```bash
-grep -E "MPVKit|43A6D04" Swiftfin.xcodeproj/project.pbxproj > /tmp/custom-deps.txt
-grep "mpvkit" Swiftfin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved >> /tmp/custom-deps.txt
+grep -E "MPVKit|43A6D04" Hydrafin.xcodeproj/project.pbxproj > /tmp/custom-deps.txt
+grep "mpvkit" Hydrafin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved >> /tmp/custom-deps.txt
 ```
 
 ### Step 2 — resolve conflicts
@@ -102,8 +102,8 @@ Use this policy for each conflicted file:
 | `Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+MPV.swift` | Keep HEAD entirely |
 | `Shared/Objects/VideoPlayerType/VideoPlayerType.swift` | Keep HEAD; upstream may add cases that don't exist — ignore them |
 | `Shared/Services/SwiftfinDefaults.swift` | Take upstream (to get new keys/style), then change `videoPlayerType` default back to `.mpv` |
-| `Swiftfin.xcodeproj/project.pbxproj` | Take upstream (`git checkout --theirs`), then re-add all MPVKit entries from Step 1 |
-| `Swiftfin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` | Take upstream (`git checkout --theirs`), then re-add the `mpvkit` block |
+| `Hydrafin.xcodeproj/project.pbxproj` | Take upstream (`git checkout --theirs`), then re-add all MPVKit entries from Step 1 |
+| `Hydrafin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` | Take upstream (`git checkout --theirs`), then re-add the `mpvkit` block |
 | `XcodeConfig/Shared.xcconfig` | Take upstream, then restore `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin` |
 | `Swiftfin tvOS/Resources/Info.plist` | Take upstream, then restore `CFBundledisplayTitle = Hydrafin` |
 | All other files | Take upstream (`git checkout --theirs`) unless you have a specific reason to keep HEAD |
@@ -161,8 +161,8 @@ This fork is branded as **Hydrafin** (not Swiftfin). Key identity values:
 
 After taking upstream changes to `project.pbxproj`, restore:
 ```bash
-sed -i '' 's/org\.jellyfin\.swiftfin/net.jingx.hydrafin/g' Swiftfin.xcodeproj/project.pbxproj
-sed -i '' 's/INFOPLIST_KEY_CFBundleDisplayName = Swiftfin/INFOPLIST_KEY_CFBundleDisplayName = Hydrafin/g' Swiftfin.xcodeproj/project.pbxproj
+sed -i '' 's/org\.jellyfin\.swiftfin/net.jingx.hydrafin/g' Hydrafin.xcodeproj/project.pbxproj
+sed -i '' 's/INFOPLIST_KEY_CFBundleDisplayName = Swiftfin/INFOPLIST_KEY_CFBundleDisplayName = Hydrafin/g' Hydrafin.xcodeproj/project.pbxproj
 ```
 
 ---
