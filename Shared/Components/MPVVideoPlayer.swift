@@ -59,7 +59,7 @@ struct MPVVideoPlayer: View {
 
     var body: some View {
         containerView
-            .preference(key: IsStatusBarHiddenKey.self, value: !containerState.isPresentingOverlay)
+            .prefersStatusBarHidden(!containerState.isPresentingOverlay)
             .backport
             .onChange(of: audioOffset) { _, newValue in
                 if let proxy = proxy as? MediaPlayerOffsetConfigurable {
@@ -103,19 +103,15 @@ struct MPVVideoPlayer: View {
                 manager.stop()
             }
             .onReceive(manager.$playbackItem) { newItem in
-                DispatchQueue.main.async {
-                    containerState.isAspectFilled = false
-                    audioOffset = .zero
-                    subtitleOffset = .zero
+                containerState.isAspectFilled = false
+                audioOffset = .zero
+                subtitleOffset = .zero
 
-                    containerState.scrubbedSeconds.value = newItem?.baseItem.startSeconds ?? .zero
-                }
+                containerState.scrubbedSeconds.value = newItem?.baseItem.startSeconds ?? .zero
             }
             .onReceive(manager.$state) { newState in
-                DispatchQueue.main.async {
-                    if newState == .stopped, !isBeingDismissedByTransition {
-                        router.dismiss()
-                    }
+                if newState == .stopped, !isBeingDismissedByTransition {
+                    router.dismiss()
                 }
             }
             .alert(
@@ -127,8 +123,7 @@ struct MPVVideoPlayer: View {
                     router.dismiss()
                 }
             } message: {
-                // TODO: localize
-                Text("Unable to load this item.")
+                Text(L10n.unableToLoadThisItem)
             }
     }
 }

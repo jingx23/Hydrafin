@@ -353,7 +353,7 @@ struct UserSignInView: View {
                     )
                 }
 
-                Button(L10n.dismiss, role: .cancel)
+                Button(L10n.dismiss, role: .cancel) {}
             } message: { existingUser in
                 Text(L10n.duplicateUserSaved(existingUser.state.state.username))
             }

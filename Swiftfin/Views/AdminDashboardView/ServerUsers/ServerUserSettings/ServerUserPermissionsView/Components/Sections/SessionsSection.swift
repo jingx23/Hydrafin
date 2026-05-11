@@ -26,7 +26,10 @@ extension ServerUserPermissionsView {
         // MARK: - Failed Login Selection View
 
         private var FailedLoginsView: some View {
-            Section {
+            Section(
+                L10n.sessions,
+                footer: L10n.maximumFailedLoginPolicyDescription
+            ) {
                 Picker(
                     L10n.maximumFailedLoginPolicy,
                     selection: $policy.loginAttemptsBeforeLockout
@@ -40,32 +43,23 @@ extension ServerUserPermissionsView {
                 if let loginAttempts = policy.loginAttemptsBeforeLockout, loginAttempts > 0 {
                     MaxFailedLoginsButton()
                 }
-
-            } header: {
-                Text(L10n.sessions)
-            } footer: {
-                VStack(alignment: .leading) {
-                    Text(L10n.maximumFailedLoginPolicyDescription)
-
-                    LearnMoreButton(L10n.maximumFailedLoginPolicy) {
-                        LabeledContent(
-                            L10n.lockedUsers,
-                            value: L10n.maximumFailedLoginPolicyReenable
-                        )
-                        LabeledContent(
-                            L10n.unlimited,
-                            value: L10n.unlimitedFailedLoginDescription
-                        )
-                        LabeledContent(
-                            L10n.default,
-                            value: L10n.defaultFailedLoginDescription
-                        )
-                        LabeledContent(
-                            L10n.custom,
-                            value: L10n.customFailedLoginDescription
-                        )
-                    }
-                }
+            } learnMore: {
+                LabeledContent(
+                    L10n.lockedUsers,
+                    value: L10n.maximumFailedLoginPolicyReenable
+                )
+                LabeledContent(
+                    L10n.unlimited,
+                    value: L10n.unlimitedFailedLoginDescription
+                )
+                LabeledContent(
+                    L10n.default,
+                    value: L10n.defaultFailedLoginDescription
+                )
+                LabeledContent(
+                    L10n.custom,
+                    value: L10n.customFailedLoginDescription
+                )
             }
         }
 
@@ -91,7 +85,10 @@ extension ServerUserPermissionsView {
         // MARK: - Failed Login Validation
 
         private var MaxSessionsView: some View {
-            Section {
+            Section(
+                L10n.maximumSessionsPolicy,
+                footer: L10n.maximumConnectionsDescription
+            ) {
                 Picker(
                     L10n.maximumSessionsPolicy,
                     selection: $policy.maxActiveSessions.map(
@@ -103,22 +100,15 @@ extension ServerUserPermissionsView {
                 if policy.maxActiveSessions != ActiveSessionsPolicy.unlimited.rawValue {
                     MaxSessionsButton()
                 }
-
-            } footer: {
-                VStack(alignment: .leading) {
-                    Text(L10n.maximumConnectionsDescription)
-
-                    LearnMoreButton(L10n.maximumSessionsPolicy) {
-                        LabeledContent(
-                            L10n.unlimited,
-                            value: L10n.unlimitedConnectionsDescription
-                        )
-                        LabeledContent(
-                            L10n.custom,
-                            value: L10n.customConnectionsDescription
-                        )
-                    }
-                }
+            } learnMore: {
+                LabeledContent(
+                    L10n.unlimited,
+                    value: L10n.unlimitedConnectionsDescription
+                )
+                LabeledContent(
+                    L10n.custom,
+                    value: L10n.customConnectionsDescription
+                )
             }
         }
 

@@ -22,7 +22,7 @@ struct SearchView: View {
     private var searchQuery = ""
 
     @StateObject
-    private var viewModel = SearchViewModel()
+    private var viewModel = SearchViewModel(filterViewModel: .init())
 
     private var suggestionsView: some View {
         VStack(spacing: 20) {

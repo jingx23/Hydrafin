@@ -78,7 +78,7 @@ extension VideoPlayer.PlaybackControls {
         }
 
         private var liveIndicator: some View {
-            Text("Live")
+            Text(L10n.live)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.white)
@@ -93,7 +93,7 @@ extension VideoPlayer.PlaybackControls {
         private var slowScrubbingIndicator: some View {
             HStack {
                 Image(systemName: "backward.fill")
-                Text("Slow Scrubbing")
+                Text(L10n.slowScrubbing)
                 Image(systemName: "forward.fill")
             }
             .font(.caption)

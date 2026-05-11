@@ -22,6 +22,8 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
 
     let isBuffering: PublishedBox<Bool> = .init(initialValue: false)
     let videoSize: PublishedBox<CGSize> = .init(initialValue: .zero)
+    let droppedFrames: PublishedBox<Int> = .init(initialValue: 0)
+    let corruptedFrames: PublishedBox<Int> = .init(initialValue: 0)
 
     private var mpvController: MPVController?
     private var managerItemObserver: AnyCancellable?

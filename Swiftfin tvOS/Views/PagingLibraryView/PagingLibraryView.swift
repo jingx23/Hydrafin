@@ -195,6 +195,7 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
 
     // MARK: Portrait Grid Item View
 
+    @ViewBuilder
     private func portraitGridItemView(item: Element) -> some View {
         PosterButton(
             item: item,
@@ -215,6 +216,7 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
 
     // MARK: List Item View
 
+    @ViewBuilder
     private func listItemView(item: Element, posterType: PosterDisplayType) -> some View {
         LibraryRow(
             item: item,
@@ -226,6 +228,7 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
 
     // MARK: Grid View
 
+    @ViewBuilder
     private var gridView: some View {
         CollectionVGrid(
             uniqueElements: viewModel.elements,
@@ -252,16 +255,25 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: Inner Content View
+    // MARK: Content View
 
     @ViewBuilder
-    private var innerContent: some View {
+    private var contentView: some View {
         switch viewModel.state {
         case .content:
             if viewModel.elements.isEmpty {
                 ContentUnavailableView(L10n.noItems.localizedCapitalized, systemImage: "rectangle.on.rectangle.slash")
             } else {
                 gridView
+                    .onChange(of: posterType) {
+                        setCustomLayout()
+                    }
+                    .onChange(of: displayType) {
+                        setCustomLayout()
+                    }
+                    .onChange(of: listColumnCount) {
+                        setCustomLayout()
+                    }
             }
         case .initial, .refreshing:
             ProgressView()
@@ -270,60 +282,18 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
         }
     }
 
-    // MARK: Content View
-
-    private var contentView: some View {
-
-        innerContent
-            // These exist here to alleviate type-checker issues
-                .onChange(of: posterType) {
-                    setCustomLayout()
-                }
-                .onChange(of: displayType) {
-                    setCustomLayout()
-                }
-                .onChange(of: listColumnCount) {
-                    setCustomLayout()
-                }
-
-        // Logic for LetterPicker. Enable when ready
-
-        /* if letterPickerEnabled, let filterViewModel = viewModel.filterViewModel {
-             ZStack(alignment: letterPickerOrientation.alignment) {
-                 innerContent
-                     .padding(letterPickerOrientation.edge, LetterPickerBar.size + 10)
-                     .frame(maxWidth: .infinity)
-
-                 LetterPickerBar(viewModel: filterViewModel)
-                     .padding(.top, safeArea.top)
-                     .padding(.bottom, safeArea.bottom)
-                     .padding(letterPickerOrientation.edge, 10)
-             }
-         } else {
-            innerContent
-         }
-         // These exist here to alleviate type-checker issues
-         .onChange(of: posterType) {
-             setCustomLayout()
-         }
-         .onChange(of: displayType) {
-             setCustomLayout()
-         }
-         .onChange(of: listColumnCount) {
-             setCustomLayout()
-         }*/
-    }
-
     // MARK: Body
 
     var body: some View {
         ZStack {
             Color.clear
+                .ignoresSafeArea()
 
             if cinematicBackground {
                 CinematicBackgroundView(viewModel: cinematicBackgroundProxy)
                     .isVisible(presentBackground)
                     .blurred()
+                    .ignoresSafeArea()
             }
 
             switch viewModel.state {
@@ -333,9 +303,11 @@ struct PagingLibraryView<Element: Poster & Identifiable>: View {
                 ErrorView(error: error)
             }
         }
+        .frame(maxWidth: .infinity)
         .animation(.linear(duration: 0.1), value: viewModel.state)
-        .ignoresSafeArea()
         .navigationTitle(viewModel.parent?.displayTitle ?? "")
+        .ignoresSafeArea(.all, edges: .vertical)
+        .letterPickerBar(filterViewModel: viewModel.filterViewModel)
         .refreshable {
             viewModel.send(.refresh)
         }

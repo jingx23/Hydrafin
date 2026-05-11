@@ -12,6 +12,7 @@ import SwiftUIIntrospect
 
 extension View {
 
+    @ViewBuilder
     func navigationBarBranding(
         isLoading: Bool = false
     ) -> some View {
@@ -23,6 +24,7 @@ extension View {
     }
 
     /// - Important: This does nothing on tvOS.
+    @ViewBuilder
     func navigationBarTitleDisplayMode(_ mode: NavigationBarItem.TitleDisplayMode) -> some View {
         self
     }
@@ -43,7 +45,8 @@ extension View {
     }
 
     /// - Important: This does nothing on tvOS.
-    func prefersStatusBarHidden(_ hidden: Bool) -> some View {
+    @ViewBuilder
+    func prefersStatusBarHidden(_ hidden: Bool = true) -> some View {
         self
     }
 }

@@ -65,7 +65,7 @@ extension SelectUserView {
             Menu {
                 Picker(L10n.servers, selection: _serverSelection) {
                     ForEach(servers) { server in
-                        Button {
+                        Button {} label: {
                             Text(server.name)
                             Text(server.currentURL.absoluteString)
                         }

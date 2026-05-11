@@ -50,7 +50,7 @@ extension VideoPlayer.PlaybackControls {
                 Group {
                     switch manager.playbackRequestStatus {
                     case .playing:
-                        Label("Pause", systemImage: "pause.fill")
+                        Label(L10n.pause, systemImage: "pause.fill")
                     case .paused:
                         Label(L10n.play, systemImage: "play.fill")
                     }
@@ -67,6 +67,7 @@ extension VideoPlayer.PlaybackControls {
             Button {
                 manager.proxy?.jumpForward(jumpForwardInterval.rawValue)
             } label: {
+                // swiftlint:disable:next hard_coded_display_string
                 Label(
                     "\(jumpForwardInterval.rawValue, format: Duration.UnitsFormatStyle(allowedUnits: [.seconds], width: .narrow))",
                     systemImage: jumpForwardInterval.systemImage
@@ -82,6 +83,7 @@ extension VideoPlayer.PlaybackControls {
             Button {
                 manager.proxy?.jumpBackward(jumpBackwardInterval.rawValue)
             } label: {
+                // swiftlint:disable:next hard_coded_display_string
                 Label(
                     "\(jumpBackwardInterval.rawValue, format: Duration.UnitsFormatStyle(allowedUnits: [.seconds], width: .narrow))",
                     systemImage: jumpBackwardInterval.secondarySystemImage
