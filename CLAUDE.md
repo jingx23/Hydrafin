@@ -104,6 +104,8 @@ Use this policy for each conflicted file:
 | `Shared/Services/SwiftfinDefaults.swift` | Take upstream (to get new keys/style), then change `videoPlayerType` default back to `.mpv` |
 | `Swiftfin.xcodeproj/project.pbxproj` | Take upstream (`git checkout --theirs`), then re-add all MPVKit entries from Step 1 |
 | `Swiftfin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` | Take upstream (`git checkout --theirs`), then re-add the `mpvkit` block |
+| `XcodeConfig/Shared.xcconfig` | Take upstream, then restore `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin` |
+| `Swiftfin tvOS/Resources/Info.plist` | Take upstream, then restore `CFBundledisplayTitle = Hydrafin` |
 | All other files | Take upstream (`git checkout --theirs`) unless you have a specific reason to keep HEAD |
 
 ### Step 3 — check for deleted files that MPV still references
@@ -142,6 +144,25 @@ Build the iOS target after resolving just the MPV-related files (Steps 2–4) be
 ```bash
 git add .
 git commit -m "feat: merge upstream jellyfin/Swiftfin main"
+```
+
+---
+
+## App identity (Hydrafin rebrand)
+
+This fork is branded as **Hydrafin** (not Swiftfin). Key identity values:
+
+| Setting | Value |
+|---------|-------|
+| Bundle ID | `net.jingx.hydrafin` |
+| iOS display name | `Hydrafin` (set via `INFOPLIST_KEY_CFBundleDisplayName` in `project.pbxproj`) |
+| tvOS display title | `Hydrafin` (set via `CFBundledisplayTitle` in `Swiftfin tvOS/Resources/Info.plist`) |
+| Primary xcconfig | `XcodeConfig/Shared.xcconfig` — `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin` |
+
+After taking upstream changes to `project.pbxproj`, restore:
+```bash
+sed -i '' 's/org\.jellyfin\.swiftfin/net.jingx.hydrafin/g' Swiftfin.xcodeproj/project.pbxproj
+sed -i '' 's/INFOPLIST_KEY_CFBundleDisplayName = Swiftfin/INFOPLIST_KEY_CFBundleDisplayName = Hydrafin/g' Swiftfin.xcodeproj/project.pbxproj
 ```
 
 ---
