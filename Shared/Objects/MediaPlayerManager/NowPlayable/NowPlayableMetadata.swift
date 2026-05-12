@@ -12,6 +12,11 @@ import MediaPlayer
 struct NowPlayableStaticMetadata {
 
     let mediaType: MPNowPlayingInfoMediaType
+    /// Specific MPMediaType (.movie, .tvShow, .music, …) written under the
+    /// legacy MPMediaItemPropertyMediaType key. tvOS Continuity reads this
+    /// older key to publish the iPhone lock-screen card; the newer
+    /// MPNowPlayingInfoPropertyMediaType (audio/video only) is not sufficient.
+    let legacyMediaType: MPMediaType
     let isLiveStream: Bool
 
     let title: String
@@ -23,6 +28,7 @@ struct NowPlayableStaticMetadata {
 
     init(
         mediaType: MPNowPlayingInfoMediaType,
+        legacyMediaType: MPMediaType = .movie,
         isLiveStream: Bool = false,
         title: String,
         artist: String? = nil,
@@ -31,6 +37,7 @@ struct NowPlayableStaticMetadata {
         albumTitle: String? = nil
     ) {
         self.mediaType = mediaType
+        self.legacyMediaType = legacyMediaType
         self.isLiveStream = isLiveStream
         self.title = title
         self.artist = artist

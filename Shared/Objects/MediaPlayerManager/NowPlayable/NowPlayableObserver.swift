@@ -114,17 +114,41 @@ class NowPlayableObserver: ViewModel, MediaPlayerObserver {
         }
     }
 
-    // TODO: remove and respond to manager action publisher instead
     // TODO: register different commands based on item capabilities
+
+    /// Delay before the first MPNowPlayingInfoCenter registration. iOS Continuity
+    /// samples whether the app is producing audio at the moment of registration;
+    /// MPV needs ~1–2s after the playback item is set before its CoreAudio
+    /// output is actually flowing, so registering immediately leaves the iPhone
+    /// lock-screen card unpublished.
+    private static let nowPlayingRegistrationDelay: Duration = .seconds(2)
+
     private func playbackItemDidChange(_ newItem: MediaPlayerItem?) {
         itemImageCancellable?.cancel()
         itemImageCancellable = nil
         guard let newItem else { return }
 
-        setNowPlayingMetadata(newItem.baseItem.nowPlayableStaticMetadata())
-
         itemImageCancellable = Task {
             let currentBaseItem = newItem.baseItem
+
+            try? await Task.sleep(for: Self.nowPlayingRegistrationDelay)
+            guard manager?.item.id == currentBaseItem.id else { return }
+
+            await MainActor.run {
+                // Re-assert the audio session co-located with the metadata
+                // write so Continuity sees an active session + populated
+                // nowPlayingInfo in the same sample.
+                try? startSession()
+                setNowPlayingMetadata(currentBaseItem.nowPlayableStaticMetadata())
+                handleNowPlayablePlaybackChange(
+                    playing: true,
+                    metadata: .init(
+                        position: manager?.seconds ?? .zero,
+                        duration: manager?.item.runtime ?? .zero
+                    )
+                )
+            }
+
             guard let image = await newItem.thumbnailProvider?() else { return }
             guard manager?.item.id == currentBaseItem.id else { return }
 
@@ -135,14 +159,6 @@ class NowPlayableObserver: ViewModel, MediaPlayerObserver {
             }
         }
         .asAnyCancellable()
-
-        handleNowPlayablePlaybackChange(
-            playing: true,
-            metadata: .init(
-                position: manager?.seconds ?? .zero,
-                duration: manager?.item.runtime ?? .zero
-            )
-        )
     }
 
     private func handleStopAction() {
@@ -233,7 +249,12 @@ class NowPlayableObserver: ViewModel, MediaPlayerObserver {
         metadata: NowPlayableDynamicMetadata
     ) {
         setNowPlayingPlaybackInfo(metadata)
+        // tvOS reserves the playbackState setter behind the private
+        // com.apple.mediaremote.set-playback-state entitlement; state is
+        // inferred from MPNowPlayingInfoPropertyPlaybackRate there instead.
+        #if !os(tvOS)
         MPNowPlayingInfoCenter.default().playbackState = playing ? .playing : .paused
+        #endif
     }
 
     private func configureRemoteCommands(
@@ -251,9 +272,17 @@ class NowPlayableObserver: ViewModel, MediaPlayerObserver {
     private func setNowPlayingMetadata(_ metadata: NowPlayableStaticMetadata) {
 
         let nowPlayingInfoCenter = MPNowPlayingInfoCenter.default()
-        var nowPlayingInfo: [String: Any] = [:]
+        // Merge — the async artwork path calls this again after dynamic
+        // playback info has been written, and overwriting would drop the
+        // playback rate / elapsed time / duration that iOS needs to render
+        // the Now Playing card.
+        var nowPlayingInfo: [String: Any] = nowPlayingInfoCenter.nowPlayingInfo ?? [:]
 
         nowPlayingInfo[MPNowPlayingInfoPropertyMediaType] = metadata.mediaType.rawValue
+        // Set the legacy MPMediaItemPropertyMediaType (MPMediaType: .movie /
+        // .tvShow / …) in addition to the newer property; tvOS Continuity
+        // requires it to surface the iPhone lock-screen card.
+        nowPlayingInfo[MPMediaItemPropertyMediaType] = metadata.legacyMediaType.rawValue
         nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = metadata.isLiveStream
         nowPlayingInfo[MPMediaItemPropertyTitle] = metadata.title
         nowPlayingInfo[MPMediaItemPropertyArtist] = metadata.artist
@@ -284,8 +313,12 @@ class NowPlayableObserver: ViewModel, MediaPlayerObserver {
         let audioSession = AVAudioSession.sharedInstance()
 
         do {
+            // tvOS gets no route-sharing policy — `.longFormAudio` is the
+            // music/podcast policy and causes Continuity to classify the
+            // session as audio-only, hiding the iPhone lock-screen card for
+            // a video app. iOS uses `.longFormVideo`.
             #if os(tvOS)
-            try audioSession.setCategory(.playback, mode: .moviePlayback, policy: .longFormAudio)
+            try audioSession.setCategory(.playback, mode: .moviePlayback, options: [])
             #else
             try audioSession.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo)
             #endif

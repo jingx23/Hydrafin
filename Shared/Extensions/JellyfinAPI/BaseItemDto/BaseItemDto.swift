@@ -82,6 +82,17 @@ extension BaseItemDto {
             }
         }()
 
+        let legacyMediaType: MPMediaType = {
+            switch type {
+            case .audio: .music
+            case .audioBook: .audioBook
+            case .episode: .tvShow
+            case .movie: .movie
+            case .musicVideo: .musicVideo
+            default: .movie
+            }
+        }()
+
         let title: String = {
             if type == .episode,
                let seriesName
@@ -113,6 +124,7 @@ extension BaseItemDto {
         // TODO: only fill artist, albumArtist, and albumTitle if audio type
         return .init(
             mediaType: mediaType,
+            legacyMediaType: legacyMediaType,
             isLiveStream: isLiveStream,
             title: title,
             artist: subtitle,
