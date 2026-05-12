@@ -284,9 +284,16 @@ class NowPlayableObserver: ViewModel, MediaPlayerObserver {
         let audioSession = AVAudioSession.sharedInstance()
 
         do {
-            try audioSession.setCategory(.playback, mode: .default)
+            #if os(tvOS)
+            try audioSession.setCategory(.playback, mode: .moviePlayback, policy: .longFormAudio)
+            #else
+            try audioSession.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo)
+            #endif
             try audioSession.setActive(true)
             logger.trace("Started AVAudioSession")
+            // Channel count is refined per-item by the player proxy once it
+            // knows the source's actual channel layout — see
+            // MPVMediaPlayerProxy.playNew(item:).
         } catch {
             logger.critical("Unable to activate AVAudioSession instance: \(error.localizedDescription)")
             throw error

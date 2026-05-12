@@ -244,9 +244,21 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
             // Controller will be created by the view and load this config
             pendingConfiguration = configuration
         }
+
+        #if os(tvOS)
+        // Switch the Apple TV HDMI output to match content frame rate +
+        // dynamic range. Without this the TV stays in its current mode and
+        // doesn't engage HDR brightness even if our Metal layer is in PQ.
+        if let videoStream = item.videoStreams.first {
+            DisplayCriteriaManager.shared.apply(videoStream: videoStream)
+        }
+        #endif
     }
 
     private func playbackStopped() {
+        #if os(tvOS)
+        DisplayCriteriaManager.shared.reset()
+        #endif
         mpvController?.stop()
         mpvController?.cleanup()
         mpvController = nil
@@ -459,6 +471,15 @@ class MPVController: @unchecked Sendable {
     init() {}
 
     func setupMpv() {
+        // Patch CoreAudio so the AudioUnit channel-layout query returns 7.1
+        // when it would otherwise fail with -10879 (the unparseable-layout
+        // error CoreAudio raises on Atmos sources). Without this, mpv falls
+        // back to a 5.1 default for Atmos and we lose the back-surround
+        // channels — confirmed by testing: removing this call drops the
+        // Sonos display from PCM 7.1 to PCM 5.1 on Atmos titles.
+        // Idempotent; safe to call on every setup.
+        installAudioUnitChannelLayoutFix()
+
         mpv = mpv_create()
         if mpv == nil {
             print("Failed creating MPV context")
@@ -479,6 +500,13 @@ class MPVController: @unchecked Sendable {
         #elseif os(tvOS)
         setupMpvTVOS()
         #endif
+
+        setupMpvOutputIntent()
+
+        // Safety net: if the audio output unit refuses a requested format
+        // (e.g. spdif bitstream on tvOS's RemoteIO, or an exotic channel
+        // layout), don't stall the video clock. Play silent audio instead.
+        checkError(mpv_set_option_string(mpv, "audio-fallback-to-null", "yes"))
 
         checkError(mpv_initialize(mpv))
 
@@ -503,7 +531,9 @@ class MPVController: @unchecked Sendable {
         // Video output and rendering
         checkError(mpv_set_option_string(mpv, "vo", "gpu-next"))
         checkError(mpv_set_option_string(mpv, "gpu-api", "vulkan"))
+        checkError(mpv_set_option_string(mpv, "gpu-context", "moltenvk"))
         checkError(mpv_set_option_string(mpv, "hwdec", "videotoolbox"))
+        checkError(mpv_set_option_string(mpv, "hwdec-codecs", "all"))
 
         // Video scaling and positioning
         checkError(mpv_set_option_string(mpv, "video-aspect-override", "no"))
@@ -521,22 +551,26 @@ class MPVController: @unchecked Sendable {
         checkError(mpv_set_option_string(mpv, "subs-match-os-language", "no"))
         checkError(mpv_set_option_string(mpv, "subs-fallback", "no"))
 
-        // Audio passthrough (AC3, DTS, EAC3, TrueHD, Atmos)
-        // TODO: make configurable via user settings, only works with real receivers
-        // checkError(mpv_set_option_string(mpv, "audio-spdif", "ac3,dts,eac3,truehd"))
-
         // Other options
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"))
 
-        // Buffering
+        // Network + buffering
+        checkError(mpv_set_option_string(mpv, "network-timeout", "30"))
         checkError(mpv_set_option_string(mpv, "cache", "yes"))
-        checkError(mpv_set_option_string(mpv, "cache-secs", "60"))
-        checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "200M"))
+        checkError(mpv_set_option_string(mpv, "cache-secs", "120"))
+        checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "250MiB"))
+        checkError(mpv_set_option_string(mpv, "demuxer-max-back-bytes", "75MiB"))
         checkError(mpv_set_option_string(mpv, "demuxer-readahead-secs", "30"))
 
-        // Smooth playback
+        // iOS: keep audio-clocked sync to avoid battery cost of interpolation
         checkError(mpv_set_option_string(mpv, "video-sync", "audio"))
         checkError(mpv_set_option_string(mpv, "interpolation", "no"))
+
+        // Quality — cheap-only. `deband` + `ewa_lanczos` are too heavy on
+        // mobile chips at 4K. HDR layer engagement is decided separately by
+        // `isHighPerformanceVideo` (configureColorSpace + setupMpvOutputIntent).
+        checkError(mpv_set_option_string(mpv, "deinterlace", "auto"))
+        checkError(mpv_set_option_string(mpv, "temporal-dither", "yes"))
     }
     #endif
 
@@ -545,7 +579,9 @@ class MPVController: @unchecked Sendable {
         // Video output and rendering
         checkError(mpv_set_option_string(mpv, "vo", "gpu-next"))
         checkError(mpv_set_option_string(mpv, "gpu-api", "vulkan"))
+        checkError(mpv_set_option_string(mpv, "gpu-context", "moltenvk"))
         checkError(mpv_set_option_string(mpv, "hwdec", "videotoolbox"))
+        checkError(mpv_set_option_string(mpv, "hwdec-codecs", "all"))
 
         // Video scaling and positioning
         checkError(mpv_set_option_string(mpv, "video-aspect-override", "no"))
@@ -562,24 +598,53 @@ class MPVController: @unchecked Sendable {
         checkError(mpv_set_option_string(mpv, "subs-match-os-language", "no"))
         checkError(mpv_set_option_string(mpv, "subs-fallback", "no"))
 
-        // Audio passthrough (AC3, DTS, EAC3, TrueHD, Atmos)
-        // TODO: make configurable via user settings, only works with real receivers
-        // checkError(mpv_set_option_string(mpv, "audio-spdif", "ac3,dts,eac3,truehd"))
-
         // Other options
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"))
 
-        // Buffering
+        // Network + buffering
+        checkError(mpv_set_option_string(mpv, "network-timeout", "30"))
         checkError(mpv_set_option_string(mpv, "cache", "yes"))
-        checkError(mpv_set_option_string(mpv, "cache-secs", "60"))
-        checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "200M"))
+        checkError(mpv_set_option_string(mpv, "cache-secs", "120"))
+        checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "250MiB"))
+        checkError(mpv_set_option_string(mpv, "demuxer-max-back-bytes", "75MiB"))
         checkError(mpv_set_option_string(mpv, "demuxer-readahead-secs", "30"))
 
-        // Smooth playback
-        checkError(mpv_set_option_string(mpv, "video-sync", "audio"))
+        // Apple TV displays are HDMI: enable Match Content Frame Rate in tvOS
+        // settings and the display refresh follows the source — combined with
+        // display-resample we get smooth 24p without expensive interpolation.
+        // (Apple TV 4K 3rd gen uses A15, same chip as iPad mini 6: it cannot
+        // afford interpolation=yes + deband + hdr-compute-peak at 4K.)
+        checkError(mpv_set_option_string(mpv, "video-sync", "display-resample"))
         checkError(mpv_set_option_string(mpv, "interpolation", "no"))
+
+        // Quality — cheap-only. Heavier options (ewa_lanczos, deband,
+        // hdr-compute-peak, interpolation) overran A15 Apple TV 4K at 4K HDR.
+        checkError(mpv_set_option_string(mpv, "deinterlace", "auto"))
+        checkError(mpv_set_option_string(mpv, "temporal-dither", "yes"))
     }
     #endif
+
+    /// Configures color management / tone mapping. The HDR pipeline is engaged
+    /// only on devices that have both an HDR-capable display path AND enough
+    /// GPU bandwidth to drive a 4K HDR drawable (see `isHighPerformanceVideo`).
+    ///
+    /// `hdr-compute-peak` is disabled everywhere: even Apple TV 4K (A15) can't
+    /// afford per-frame histogram analysis at 4K. mpv falls back to
+    /// metadata-driven peak — fine for HDR10 / DV / HLG.
+    private func setupMpvOutputIntent() {
+        let useHDRPipeline = PlaybackCapabilities.isDeviceHDRCapable
+            && PlaybackCapabilities.isHighPerformanceVideo
+
+        if useHDRPipeline {
+            checkError(mpv_set_option_string(mpv, "target-colorspace-hint", "auto"))
+            checkError(mpv_set_option_string(mpv, "target-prim", "auto"))
+            checkError(mpv_set_option_string(mpv, "target-trc", "auto"))
+            checkError(mpv_set_option_string(mpv, "tone-mapping", "auto"))
+            checkError(mpv_set_option_string(mpv, "gamut-mapping-mode", "auto"))
+            checkError(mpv_set_option_string(mpv, "hdr-compute-peak", "no"))
+        }
+        // Else: mpv defaults handle SDR-only displays / lower-end iOS devices.
+    }
 
     func loadFile(_ configuration: MPVPlayerConfiguration) {
         guard mpv != nil else { return }
@@ -883,17 +948,42 @@ final class MPVMetalViewController: UIViewController {
         metalLayer.frame = view.bounds
         #if os(iOS)
         metalLayer.contentsScale = UIScreen.main.nativeScale
-        metalLayer.pixelFormat = .bgra8Unorm
         metalLayer.allowsNextDrawableTimeout = false
         #elseif os(tvOS)
         metalLayer.contentsScale = UIScreen.main.scale
         #endif
+        configureColorSpace(on: metalLayer)
         metalLayer.framebufferOnly = true
         metalLayer.backgroundColor = UIColor.black.cgColor
         view.layer.addSublayer(metalLayer)
 
         controller.setupMpv()
         proxy.attachController(controller)
+    }
+
+    /// Picks the pixel format + colorspace for the Metal drawable.
+    ///
+    /// HDR-capable display + enough GPU bandwidth → rgba16Float + Rec.2100 PQ.
+    /// HDR content passes through natively; SDR content is presented through
+    /// the EDR pipeline.
+    ///
+    /// Otherwise → bgra8Unorm + sRGB. rgba16Float doubles framebuffer bandwidth,
+    /// which overruns A15-class chips when driving an external 4K HDR display
+    /// (iPhone 13 / SE3 / iPad mini 6).
+    private func configureColorSpace(on metalLayer: CAMetalLayer) {
+        let useHDRLayer = PlaybackCapabilities.isDeviceHDRCapable
+            && PlaybackCapabilities.isHighPerformanceVideo
+
+        if useHDRLayer {
+            metalLayer.pixelFormat = .rgba16Float
+            #if os(iOS)
+            metalLayer.wantsExtendedDynamicRangeContent = true
+            #endif
+            metalLayer.colorspace = CGColorSpace(name: CGColorSpace.itur_2100_PQ)
+        } else {
+            metalLayer.pixelFormat = .bgra8Unorm
+            metalLayer.colorspace = CGColorSpace(name: CGColorSpace.sRGB)
+        }
     }
 
     private var lastBoundsSize: CGSize = .zero

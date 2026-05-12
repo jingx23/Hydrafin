@@ -22,6 +22,9 @@ Upstream uses VLC (via the `VLCUI` SPM package and Carthage `MobileVLCKit.xcfram
 | `Shared/Components/MPVVideoPlayer.swift` | Top-level SwiftUI view for the MPV player (equivalent to upstream's `VideoPlayer.swift` body) |
 | `Shared/Components/VideoPlayer.swift` | Empty namespace enum — upstream has a VLC-hardcoded body here |
 | `Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+MPV.swift` | Full MPV proxy implementation (`MPVMediaPlayerProxy`) |
+| `Shared/Objects/MediaPlayerManager/AudioUnitFix/AudioUnitChannelLayoutFix.h` | C header for the CoreAudio multichannel/Atmos workaround |
+| `Shared/Objects/MediaPlayerManager/AudioUnitFix/AudioUnitChannelLayoutFix.c` | mach-o symbol-rebinding implementation; called from `MPVController.setupMpv()` |
+| `Shared/Hydrafin-Bridging-Header.h` | Swift ↔ C bridging header (configured via `XcodeConfig/Shared.xcconfig`) |
 | `Shared/Objects/VideoPlayerType/VideoPlayerType.swift` | Has `.mpv` + `.native` cases — upstream has `.native` + `.swiftfin` |
 | `Shared/Objects/VideoPlayerType/VideoPlayerType+MPV.swift` | MPV direct-play, transcoding, and subtitle profiles |
 
@@ -104,7 +107,7 @@ Use this policy for each conflicted file:
 | `Shared/Services/SwiftfinDefaults.swift` | Take upstream (to get new keys/style), then change `videoPlayerType` default back to `.mpv` |
 | `Hydrafin.xcodeproj/project.pbxproj` | Take upstream (`git checkout --theirs`), then re-add all MPVKit entries from Step 1 |
 | `Hydrafin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` | Take upstream (`git checkout --theirs`), then re-add the `mpvkit` block |
-| `XcodeConfig/Shared.xcconfig` | Take upstream, then restore `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin` |
+| `XcodeConfig/Shared.xcconfig` | Take upstream, then restore `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin`, `SWIFT_OBJC_BRIDGING_HEADER`, and `HEADER_SEARCH_PATHS` |
 | `Swiftfin tvOS/Resources/Info.plist` | Take upstream, then restore `CFBundledisplayTitle = Hydrafin` |
 | All other files | Take upstream (`git checkout --theirs`) unless you have a specific reason to keep HEAD |
 

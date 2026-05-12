@@ -22,8 +22,10 @@ extension VideoPlayerType {
             AudioCodec.amr_nb
             AudioCodec.amr_wb
             AudioCodec.dts
+            AudioCodec.dts_hd
             AudioCodec.eac3
             AudioCodec.flac
+            AudioCodec.mlp
             AudioCodec.mp1
             AudioCodec.mp2
             AudioCodec.mp3
@@ -39,6 +41,7 @@ extension VideoPlayerType {
             AudioCodec.pcm_s24le
             AudioCodec.pcm_u8
             AudioCodec.speex
+            AudioCodec.truehd
             AudioCodec.vorbis
             AudioCodec.wavpack
             AudioCodec.wmalossless

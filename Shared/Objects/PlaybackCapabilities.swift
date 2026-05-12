@@ -31,6 +31,26 @@ enum PlaybackCapabilities {
         MTLCreateSystemDefaultDevice()?.name ?? L10n.unknown
     }
 
+    /// Heuristic for "this device has the memory bandwidth to drive a 4K HDR
+    /// drawable (rgba16Float / Rec.2100 PQ) without dropping frames".
+    ///
+    /// On iOS, 6 GB+ RAM correlates with iPhone 13 Pro and newer (Pro line and
+    /// the iPhone 15+ baseline). Below this threshold — iPhone SE3, iPad mini 6,
+    /// base 13/14 — the rgba16Float swapchain consumes too much of the GPU
+    /// memory budget when driving an external 4K HDR display.
+    ///
+    /// On tvOS, every supported Apple TV outputs to a TV (always potentially
+    /// HDR), so we always engage the HDR pipeline. Caller is responsible for
+    /// avoiding the *expensive* shaders separately — even A15 Apple TV 4K
+    /// can't sustain ewa_lanczos / hdr-compute-peak at 4K.
+    static var isHighPerformanceVideo: Bool {
+        #if os(tvOS)
+        return true
+        #else
+        return ProcessInfo.processInfo.physicalMemory >= UInt64(6) * 1024 * 1024 * 1024
+        #endif
+    }
+
     // MARK: - Hardware Decode
 
     // MARK: MPEG / ITU-T

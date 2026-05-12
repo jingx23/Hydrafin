@@ -6,7 +6,9 @@
 // Copyright (c) 2025 Jellyfin & Jellyfin Contributors
 //
 
-DEVELOPMENT_TEAM = 
+DEVELOPMENT_TEAM =
 PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin
+SWIFT_OBJC_BRIDGING_HEADER = $(SRCROOT)/Shared/Hydrafin-Bridging-Header.h
+HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT)/Shared
 
 #include? "DevelopmentTeam.xcconfig"

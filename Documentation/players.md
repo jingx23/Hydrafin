@@ -19,8 +19,11 @@ All video, audio, and subtitle formats listed are supported for direct playback 
 
 | Feature                    | MPV (libmpv)      | Native (AVPlayer) |
 |----------------------------|-------------------|-------------------|
-| **Framerate Matching**     | ❌                | ✅                |
+| **Framerate Matching**     | ✅ [tvOS]         | ✅                |
+| **HDR Mode Switching (tvOS)** | ✅ [2]         | ✅                |
 | **HDR to SDR Tonemapping** | ✅                | 🔶 [1]            |
+| **Multichannel PCM Output**| ✅ [3]            | ✅                |
+| **Audio Bitstream Passthrough** | ❌ [4]       | ✅                |
 | **Player Controls**        | - Speed adjustment<br>- Aspect Fill<br>- Chapter Support<br>- Subtitle Support<br>- Audio Track Selection<br>- Customizable UI | - Speed adjustment<br>- Aspect Fill |
 | **Picture-in-Picture**     | ❌                | ✅                |
 | **TLS Support**            | 1.1, 1.2, 1.3     | 1.1, 1.2, 1.3     |
@@ -29,6 +32,12 @@ All video, audio, and subtitle formats listed are supported for direct playback 
 **Notes**
 
 [1] In Native (AVPlayer), HDR to SDR Tonemapping requires Direct Playing compatible MP4 files and may require Dolby Vision Profiles 5 & 8 for full support.
+
+[2] MPV on tvOS triggers the HDMI HDR/DV handshake via `AVDisplayManager.preferredDisplayCriteria` built from Jellyfin video stream metadata. Requires *Settings → Video and Audio → Match Content* to be enabled on the Apple TV.
+
+[3] On tvOS, Atmos sources output as PCM 7.1 (the 7.1 ground bed of the Atmos mix); the 4 height channels are lost. On a 5.1 setup, CoreAudio downmixes to 5.1 automatically.
+
+[4] Bitstream passthrough (Dolby Digital Plus Atmos, TrueHD Atmos, DTS-HD MA) is not available through MPV on tvOS — the underlying `audiounit` audio output ships in MPVKit only supports PCM. For the receiver to display the "Dolby Atmos" badge, switch to the Native player in *Settings → Video Player → Player*.
 
 ---
 
@@ -72,7 +81,7 @@ All video, audio, and subtitle formats listed are supported for direct playback 
 | [MP1](https://en.wikipedia.org/wiki/MPEG-1_Audio_Layer_I)                      | ✅  | ❌                |
 | [MP2](https://en.wikipedia.org/wiki/MPEG-1_Audio_Layer_II)                     | ✅  | ❌                |
 | [MP3](https://en.wikipedia.org/wiki/MP3)                                       | ✅  | ✅                |
-| [MLP](https://en.wikipedia.org/wiki/Meridian_Lossless_Packing)                 | ❌  | ❌                |
+| [MLP](https://en.wikipedia.org/wiki/Meridian_Lossless_Packing)                 | ✅  | ❌                |
 | [Nellymoser](https://en.wikipedia.org/wiki/Nellymoser_Asao_Codec)              | ✅  | ❌                |
 | [Opus](https://en.wikipedia.org/wiki/Opus_(audio_format))                      | ✅  | ❌                |
 | [PCM](https://en.wikipedia.org/wiki/Pulse-code_modulation)                     | ✅  | 🔶 [1]            |
