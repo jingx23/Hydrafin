@@ -703,7 +703,7 @@ class MPVController: @unchecked Sendable {
     }
 
     func seek(to position: Double) {
-        command("seek", args: ["\(position)", "absolute"])
+        command("seek", args: ["\(position)", "absolute", "exact"])
     }
 
     func getCurrentTime() -> Double {
@@ -890,6 +890,9 @@ class MPVController: @unchecked Sendable {
 
         mpv_set_wakeup_callback(mpv, nil, nil)
         command("stop", checkForErrors: false)
+
+        // Destroy the vo on the main thread before terminating mpv: frees Vulkan/Metal allocations and flushes pending CATransactions.
+        setOption("vo", value: "null")
 
         if let device = metalLayer.device {
             device.makeCommandQueue()?.makeCommandBuffer()?.commit()

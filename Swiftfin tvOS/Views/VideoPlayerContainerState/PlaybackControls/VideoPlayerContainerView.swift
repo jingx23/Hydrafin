@@ -243,7 +243,7 @@ extension VideoPlayer {
                 playbackControlsView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 playbackControlsView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 playbackControlsView.topAnchor.constraint(equalTo: view.topAnchor),
-                playbackControlsView.bottomAnchor.constraint(equalTo: supplementContainerView.topAnchor),
+                playbackControlsView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             ]
 
             NSLayoutConstraint.activate(playbackControlsConstraints)

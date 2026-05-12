@@ -54,6 +54,11 @@ struct MPVVideoPlayer: View {
         .onAppear {
             manager.proxy = proxy
             manager.start()
+            // MPV renders to a CAMetalLayer, which doesn't auto-suppress the system idle timer like AVPlayer.
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
         }
     }
 
@@ -101,6 +106,10 @@ struct MPVVideoPlayer: View {
                 guard !isPresented else { return }
                 isBeingDismissedByTransition = true
                 manager.stop()
+            }
+            .onReceive(manager.secondsBox.$value.receive(on: DispatchQueue.main)) { seconds in
+                guard !containerState.isScrubbing else { return }
+                containerState.scrubbedSeconds.value = seconds
             }
             .onReceive(manager.$playbackItem) { newItem in
                 containerState.isAspectFilled = false
