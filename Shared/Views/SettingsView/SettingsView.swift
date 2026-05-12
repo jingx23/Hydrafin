@@ -120,12 +120,12 @@ struct SettingsView: View {
             }
         } learnMore: {
             LabeledContent(
-                L10n.swiftfin,
-                value: L10n.playerSwiftfinDescription
+                "MPV",
+                value: "Best codec compatibility, accurate HDR, and recovers from imperfect streams. No Dolby Atmos or DTS-HD bitstream passthrough — multichannel PCM only."
             )
             LabeledContent(
                 L10n.native,
-                value: L10n.playerNativeDescription
+                value: "Uses Apple's AVPlayer which supports Dolby Atmos and Dolby Vision bitstream passthrough, HDR, Picture in Picture, and AirPlay casting. More restrictive with file formats."
             )
         }
     }

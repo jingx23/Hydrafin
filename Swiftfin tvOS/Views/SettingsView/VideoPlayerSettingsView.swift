@@ -20,8 +20,6 @@ struct VideoPlayerSettingsView: View {
     private var jumpForwardLength
     @Default(.VideoPlayer.resumeOffset)
     private var resumeOffset
-    @Default(.VideoPlayer.videoPlayerType)
-    private var videoPlayerType
 
     @Router
     private var router
@@ -29,21 +27,6 @@ struct VideoPlayerSettingsView: View {
     // TODO: Update with correct settings once the tvOS PlayerUI is complete
     var body: some View {
         Form(systemImage: "tv") {
-
-            Section {
-                Picker("Player", selection: $videoPlayerType) {
-                    ForEach(VideoPlayerType.allCases, id: \.self) { type in
-                        Text(type.displayTitle).tag(type)
-                    }
-                }
-            } header: {
-                Text("Player")
-            } footer: {
-                // swiftlint:disable:next line_length
-                Text(
-                    "MPV (default): best codec compatibility, accurate HDR, recovers from imperfect streams. No Dolby Atmos / DTS-HD bitstream passthrough — multichannel PCM only. Native (AVPlayer): supports Dolby Atmos and Dolby Vision bitstream passthrough to a receiver, more restrictive on codecs."
-                )
-            }
 
             Section(L10n.buttons) {
                 JumpIntervalPicker(L10n.jumpBackwardLength, selection: $jumpBackwardLength)
