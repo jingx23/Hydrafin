@@ -226,7 +226,7 @@
 		E14560852DFCAE51008FF700 /* Swiftfin */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14561A22DFCAE51008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, E14561A32DFCAE51008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Swiftfin; sourceTree = "<group>"; };
 		E14563272DFCAE6E008FF700 /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14565D92DFCAE6E008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Shared; sourceTree = "<group>"; };
 		E14565DD2DFCAE78008FF700 /* Scripts */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Scripts; sourceTree = "<group>"; };
-		E145669F2DFCAEFD008FF700 /* Hydrafin tvOS */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14567272DFCAEFD008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "Swiftfin tvOS"; sourceTree = "<group>"; };
+		E145669F2DFCAEFD008FF700 /* Swiftfin tvOS */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (E14567272DFCAEFD008FF700 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "Swiftfin tvOS"; sourceTree = "<group>"; };
 		E1456FC82DFCB323008FF700 /* Translations */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Translations; sourceTree = "<group>"; };
 		E150B7D12DFF2E7C00DC7CF4 /* XcodeConfig */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = XcodeConfig; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -359,7 +359,7 @@
 			isa = PBXGroup;
 			children = (
 				E14560852DFCAE51008FF700 /* Swiftfin */,
-				E145669F2DFCAEFD008FF700 /* Hydrafin tvOS */,
+				E145669F2DFCAEFD008FF700 /* Swiftfin tvOS */,
 				E14563272DFCAE6E008FF700 /* Shared */,
 				E1456FC82DFCB323008FF700 /* Translations */,
 				5377CBF2263B596A003A4E83 /* Products */,
@@ -455,7 +455,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				E14563272DFCAE6E008FF700 /* Shared */,
-				E145669F2DFCAEFD008FF700 /* Hydrafin tvOS */,
+				E145669F2DFCAEFD008FF700 /* Swiftfin tvOS */,
 				E1456FC82DFCB323008FF700 /* Translations */,
 				E150B7D12DFF2E7C00DC7CF4 /* XcodeConfig */,
 			);
