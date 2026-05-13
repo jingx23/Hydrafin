@@ -336,9 +336,9 @@ extension View {
         }
     }
 
-    func blurred(style: UIBlurEffect.Style = .regular) -> some View {
+    func blurred(material: Material = .regularMaterial) -> some View {
         overlay {
-            BlurView(style: style)
+            Rectangle().fill(material)
         }
     }
 
@@ -349,7 +349,9 @@ extension View {
     ) -> some View {
         fullScreenCover(isPresented: isPresented, onDismiss: onDismiss) {
             ZStack {
-                BlurView()
+                Rectangle()
+                    .fill(.regularMaterial)
+                    .ignoresSafeArea()
 
                 content()
                     .eraseToAnyView()

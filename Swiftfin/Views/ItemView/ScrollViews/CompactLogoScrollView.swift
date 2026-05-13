@@ -50,7 +50,9 @@ extension ItemView {
                     .edgePadding(.bottom)
                     .frame(maxWidth: .infinity)
                     .background {
-                        BlurView(style: .systemThinMaterialDark)
+                        Rectangle()
+                            .fill(.thinMaterial)
+                            .environment(\.colorScheme, .dark)
                             .maskLinearGradient {
                                 (location: 0, opacity: 0)
                                 (location: 0.3, opacity: 1)
