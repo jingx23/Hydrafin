@@ -81,9 +81,7 @@ extension ItemView {
                             content
                         }
                         .background {
-                            Rectangle()
-                                .fill(.regularMaterial)
-                                .environment(\.colorScheme, .dark)
+                            BlurView(style: .dark)
                                 .mask {
                                     VStack(spacing: 0) {
                                         LinearGradient(gradient: Gradient(stops: [
