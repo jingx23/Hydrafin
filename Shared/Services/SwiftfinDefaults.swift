@@ -267,6 +267,12 @@ extension Defaults.Keys {
             UserKey("autoPlayEnabled", default: true)
         }
 
+        /// Whether to show the floating "Skip Credits" / "Next Episode" button
+        /// when playback enters an outro segment.
+        static var showSkipButtons: Key<Bool> {
+            UserKey("showSkipButtons", default: true)
+        }
+
         static var barActionButtons: Key<[VideoPlayerActionButton]> {
             UserKey(
                 "barActionButtons",

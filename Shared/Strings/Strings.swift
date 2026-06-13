@@ -1030,6 +1030,8 @@ internal enum L10n {
   internal static let newUser = L10n.tr("Localizable", "newUser", fallback: "New user")
   /// Next
   internal static let next = L10n.tr("Localizable", "next", fallback: "Next")
+  /// Next Episode
+  internal static let nextEpisode = L10n.tr("Localizable", "nextEpisode", fallback: "Next Episode")
   /// Next item
   internal static let nextItem = L10n.tr("Localizable", "nextItem", fallback: "Next item")
   /// Next Up
@@ -1426,6 +1428,8 @@ internal enum L10n {
   internal static let showPosterLabels = L10n.tr("Localizable", "showPosterLabels", fallback: "Show poster labels")
   /// Show progress
   internal static let showProgress = L10n.tr("Localizable", "showProgress", fallback: "Show progress")
+  /// Show skip button
+  internal static let showSkipButton = L10n.tr("Localizable", "showSkipButton", fallback: "Show skip button")
   /// Show unwatched
   internal static let showUnwatched = L10n.tr("Localizable", "showUnwatched", fallback: "Show unwatched")
   /// Show watched
@@ -1450,6 +1454,8 @@ internal enum L10n {
   internal static let signoutCloseFooter = L10n.tr("Localizable", "signoutCloseFooter", fallback: "Signs out the last user when Swiftfin has been force closed.")
   /// Size
   internal static let size = L10n.tr("Localizable", "size", fallback: "Size")
+  /// Skip Credits
+  internal static let skipCredits = L10n.tr("Localizable", "skipCredits", fallback: "Skip Credits")
   /// Slider
   internal static let slider = L10n.tr("Localizable", "slider", fallback: "Slider")
   /// Slow scrub

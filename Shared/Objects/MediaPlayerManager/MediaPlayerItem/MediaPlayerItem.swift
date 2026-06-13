@@ -58,6 +58,10 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
     let subtitleStreams: [MediaStream]
     let videoStreams: [MediaStream]
 
+    /// Intro / outro (credits) / recap segments for this item, from the
+    /// server's Media Segments API or a heuristic fallback. May be empty.
+    let segments: [MediaSegment]
+
     let requestedBitrate: PlaybackBitrate
 
     // MARK: init
@@ -69,7 +73,8 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
         url: URL,
         requestedBitrate: PlaybackBitrate = .max,
         previewImageProvider: (any PreviewImageProvider)? = nil,
-        thumbnailProvider: ThumbnailProvider? = nil
+        thumbnailProvider: ThumbnailProvider? = nil,
+        segments: [MediaSegment] = []
     ) {
         self.baseItem = baseItem
         self.mediaSource = mediaSource
@@ -78,6 +83,7 @@ class MediaPlayerItem: ViewModel, MediaPlayerObserver {
         self.previewImageProvider = previewImageProvider
         self.thumbnailProvider = thumbnailProvider
         self.url = url
+        self.segments = segments
 
         let adjustedMediaStreams = mediaSource.mediaStreams?.adjustedTrackIndexes(
             for: mediaSource.transcodingURL == nil ? .directPlay : .transcode,

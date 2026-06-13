@@ -20,6 +20,8 @@ struct VideoPlayerSettingsView: View {
     private var jumpForwardLength
     @Default(.VideoPlayer.resumeOffset)
     private var resumeOffset
+    @Default(.VideoPlayer.showSkipButtons)
+    private var showSkipButtons
 
     @Router
     private var router
@@ -31,6 +33,7 @@ struct VideoPlayerSettingsView: View {
             Section(L10n.buttons) {
                 JumpIntervalPicker(L10n.jumpBackwardLength, selection: $jumpBackwardLength)
                 JumpIntervalPicker(L10n.jumpForwardLength, selection: $jumpForwardLength)
+                Toggle(L10n.showSkipButton, isOn: $showSkipButtons)
             }
 
             Section {

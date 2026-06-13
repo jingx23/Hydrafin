@@ -162,6 +162,10 @@ extension MediaPlayerItem {
             return nil
         }()
 
+        // Segments (intro / outro / …) are best-effort: never block or fail
+        // playback on their account.
+        let segments = await (try? Container.shared.mediaSegmentProvider().segments(for: item)) ?? []
+
         return .init(
             baseItem: item,
             mediaSource: mediaSource,
@@ -169,7 +173,8 @@ extension MediaPlayerItem {
             url: playbackURL,
             requestedBitrate: requestedBitrate,
             previewImageProvider: previewImageProvider,
-            thumbnailProvider: item.getNowPlayingImage
+            thumbnailProvider: item.getNowPlayingImage,
+            segments: segments
         )
     }
 

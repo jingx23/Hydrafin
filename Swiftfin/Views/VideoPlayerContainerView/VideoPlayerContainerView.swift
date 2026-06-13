@@ -128,6 +128,11 @@ extension VideoPlayer {
                             )
 
                         playbackControls
+
+                        // Floating skip button, shown independently of the
+                        // playback controls' visibility.
+                        VideoPlayer.PlaybackControls.SegmentSkipButton()
+                            .allowsHitTesting(true)
                     }
                     // inject box explicitly
                     .environmentObject(containerState.scrubbedSeconds)

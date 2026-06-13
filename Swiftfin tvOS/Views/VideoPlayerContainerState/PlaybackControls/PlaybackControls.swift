@@ -6,11 +6,15 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import Defaults
 import SwiftUI
 
 extension VideoPlayer {
 
     struct PlaybackControls: View {
+
+        @Default(.VideoPlayer.showSkipButtons)
+        private var showSkipButtons
 
         @EnvironmentObject
         private var containerState: VideoPlayerContainerState
@@ -45,6 +49,7 @@ extension VideoPlayer {
             case previous
             case next
             case aspectFill
+            case skip
         }
 
         private var isPlaying: Bool {
@@ -71,6 +76,27 @@ extension VideoPlayer {
             isLiveTV ? .playPause : .seekbar
         }
 
+        /// The outro segment containing the current position, when the skip
+        /// feature is enabled and we're inside one.
+        private var activeOutro: MediaSegment? {
+            guard showSkipButtons, !isLiveTV else { return nil }
+            return manager.playbackItem?.segments.segment(ofKind: .outro, at: scrubbedSecondsBox.value)
+        }
+
+        private var hasNextItem: Bool {
+            manager.queue?.nextItem != nil
+        }
+
+        private func skip(past outro: MediaSegment) {
+            if let nextItem = manager.queue?.nextItem {
+                manager.playNewItem(provider: nextItem)
+            } else {
+                manager.proxy?.setSeconds(outro.end)
+                manager.seconds = outro.end
+            }
+            containerState.timer.poke()
+        }
+
         private var scrubFraction: Float {
             guard let runtime = manager.item.runtime, runtime > .zero else { return 0 }
             let current = isScrubbing ? scrubbedSecondsBox.value : manager.seconds
@@ -84,8 +110,11 @@ extension VideoPlayer {
                         .focusSection()
                         .transition(.opacity)
                 }
+
+                skipButtonLayer
             }
             .animation(.easeInOut(duration: 0.25), value: isPresentingOverlay)
+            .animation(.easeInOut(duration: 0.25), value: activeOutro)
             .onReceive(onPressEvent) { handlePress($0) }
             .onReceive(manager.secondsBox.$value.receive(on: DispatchQueue.main)) { seconds in
                 guard !containerState.isScrubbing else { return }
@@ -94,6 +123,46 @@ extension VideoPlayer {
             .onReceive(containerState.timer) { _ in
                 guard isPresentingOverlay, !isScrubbing, !isPresentingSupplement else { return }
                 containerState.isPresentingOverlay = false
+            }
+            .onChange(of: activeOutro) { _, newValue in
+                // Move focus onto the skip button when it appears over hidden controls.
+                if newValue != nil, !isPresentingOverlay {
+                    focusedControl = .skip
+                }
+            }
+            .onChange(of: isPresentingOverlay) { _, presenting in
+                // Restore focus to the skip button when controls auto-hide during the outro.
+                if !presenting, activeOutro != nil {
+                    focusedControl = .skip
+                }
+            }
+        }
+
+        // MARK: - Skip button
+
+        /// Floating, focusable "Next Episode" / "Skip Credits" button shown over
+        /// hidden controls while playback is inside the outro segment.
+        @ViewBuilder
+        private var skipButtonLayer: some View {
+            if let outro = activeOutro, !isPresentingOverlay, !isPresentingSupplement {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button {
+                            skip(past: outro)
+                        } label: {
+                            Label(
+                                hasNextItem ? L10n.nextEpisode : L10n.skipCredits,
+                                systemImage: hasNextItem ? "forward.end.fill" : "forward.fill"
+                            )
+                        }
+                        .buttonStyle(SkipButtonStyle())
+                        .focused($focusedControl, equals: .skip)
+                    }
+                }
+                .padding(80)
+                .transition(.opacity)
             }
         }
 
