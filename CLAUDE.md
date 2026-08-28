@@ -84,6 +84,8 @@ Package.resolved entry (version may update, identity and location are fixed):
 
 ### Known issues / TODOs
 
+- **CoreStore pinned to a revision** (temporary) — CoreStore 9.3.0 fails to compile under Xcode 27 (`ambiguous use of 'cs_sync'`). The fix (JohnEstropia/CoreStore#519) is merged on `develop` but unreleased, so the project pins `CoreStore` to revision `332883717578c009e1e8917a647a2f6c975e8f0a` (= 9.3.0 + fix). When a release newer than 9.3.0 ships, switch the requirement in `project.pbxproj` back to `upToNextMajorVersion 9.0.0`. Upstream Swiftfin uses the normal version range — on merges, keep the revision pin until then.
+
 - **Audio passthrough** — `audio-spdif=ac3,dts,eac3,truehd` is currently commented out in `setupMpvIOS()` and `setupMpvTVOS()` in `MediaPlayerProxy+MPV.swift`. It only works when connected to a real AV receiver; on device speakers/headphones it causes playback to hang. Needs a user-facing setting ("Send audio directly to receiver") in Video Player settings.
 
 - **Rotation on iOS** — Fixed by explicitly setting `drawableSize` on the `CAMetalLayer` sublayer and cycling the video track (`vid no` → `vid auto`) to force a VO reconfig on bounds change. Root cause: CAMetalLayer sublayers don't auto-update `drawableSize` on frame changes. View-backed layer was not usable because MoltenVK modifies CAMetalLayer properties from `vo_thread` (off-main), which UIKit forbids for view-backed layers.
