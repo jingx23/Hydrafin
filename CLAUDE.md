@@ -193,12 +193,17 @@ This fork is branded as **Hydrafin** (not Swiftfin). Key identity values:
 | iOS display name | `Hydrafin` (set via `INFOPLIST_KEY_CFBundleDisplayName` in `project.pbxproj`) |
 | tvOS display title | `Hydrafin` (set via `CFBundledisplayTitle` in `Swiftfin tvOS/Resources/Info.plist`) |
 | Primary xcconfig | `XcodeConfig/Shared.xcconfig` — `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin` |
+| Target names | `Hydrafin iOS` / `Hydrafin tvOS` in `project.pbxproj` (the shared schemes reference these; do NOT rename the synchronized group `path = "Swiftfin tvOS"` or `INFOPLIST_FILE` — those must keep matching the folder names on disk) |
+| CI schemes | `Hydrafin` / `Hydrafin tvOS` in `.github/workflows/ci.yml` (matrix) and `.github/workflows/testflight.yml` (`IOS_SCHEME`/`TVOS_SCHEME`) |
+| Fastlane project | `xcodeProject = "Hydrafin.xcodeproj"` in `fastlane/Fastfile.swift` |
 
 After taking upstream changes to `project.pbxproj`, restore:
 ```bash
 sed -i '' 's/org\.jellyfin\.swiftfin/net.jingx.hydrafin/g' Hydrafin.xcodeproj/project.pbxproj
 sed -i '' 's/INFOPLIST_KEY_CFBundleDisplayName = Swiftfin/INFOPLIST_KEY_CFBundleDisplayName = Hydrafin/g' Hydrafin.xcodeproj/project.pbxproj
 ```
+
+After taking upstream changes to CI/fastlane files, restore the scheme and project names listed above (upstream's configs say `Swiftfin`, which breaks the build jobs with "Couldn't find specified scheme").
 
 ---
 
