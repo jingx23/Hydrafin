@@ -241,7 +241,8 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
                     )
                     guard let fullURL = client.url(path: deliveryPath) else { return nil }
                     return (url: fullURL, title: stream.displayTitle ?? "")
-                }
+                },
+            playbackRate: Defaults[.VideoPlayer.Playback.playbackRate]
         )
 
         if let mpvController {
@@ -444,6 +445,9 @@ struct MPVPlayerConfiguration {
     let subtitleFontName: String
     let subtitleForcedEventsOnly: Bool
     let externalSubtitles: [(url: URL, title: String)]
+    /// Initial playback speed, restored from the persisted user setting
+    /// (mirrors upstream VLC's `configuration.rate` at load).
+    let playbackRate: Float
 }
 
 // MARK: - MPV Playback State
@@ -667,6 +671,9 @@ class MPVController: @unchecked Sendable {
         uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
         let hex = String(format: "#%02X%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255), Int(a * 255))
         setOption("sub-color", value: hex)
+
+        // Apply initial playback speed
+        setRate(Double(configuration.playbackRate))
 
         // Load the file
         command("loadfile", args: [configuration.url.absoluteString, "replace"])
@@ -921,13 +928,18 @@ class MPVController: @unchecked Sendable {
 
 extension MPVMediaPlayerProxy {
 
-    /// Bridges mpv position updates into the container state, mirroring what
-    /// upstream's VLC player view does in `onSecondsUpdated` — the playback
-    /// controls (progress bar, timestamps) are driven by
-    /// `containerState.scrubbedSeconds`, not `manager.secondsBox`.
+    /// Bridges manager/settings state into mpv, mirroring what upstream's VLC
+    /// player view does inline:
+    /// - position updates → `containerState.scrubbedSeconds` (drives the
+    ///   playback controls' progress bar and timestamps)
+    /// - `manager.rate` → mpv speed (playback speed menu)
+    /// - subtitle configuration changes → mpv sub options (live updates)
     struct MPVPlayerBodyView: View {
 
         let proxy: MPVMediaPlayerProxy
+
+        @Default(.VideoPlayer.Subtitle.configuration)
+        private var subtitleConfiguration
 
         @EnvironmentObject
         private var containerState: VideoPlayerContainerState
@@ -939,6 +951,12 @@ extension MPVMediaPlayerProxy {
                 .onReceive(manager.secondsBox.$value.receive(on: DispatchQueue.main)) { seconds in
                     guard !containerState.isScrubbing else { return }
                     containerState.scrubbedSeconds.value = seconds
+                }
+                .onChange(of: manager.rate) {
+                    proxy.setRate(manager.rate)
+                }
+                .onChange(of: subtitleConfiguration) {
+                    proxy.setSubtitleConfiguration(subtitleConfiguration)
                 }
         }
     }

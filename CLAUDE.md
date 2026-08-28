@@ -38,7 +38,14 @@ Upstream has no media-segment support. These files are fork-only — preserve on
 | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackControls+SegmentSkip.swift` | tvOS skip layer + skip logic extension on `VideoPlayer.PlaybackControls` |
 | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/SkipButtonStyle.swift` | Focus-aware capsule button style for tvOS |
 
-**CRITICAL — seconds sync:** upstream's playback controls (progress bar, timestamps) are driven by `containerState.scrubbedSeconds`, which each proxy's player view must feed. Upstream's VLC view does this in `onSecondsUpdated`; the MPV equivalent is `MPVPlayerBodyView` in `MediaPlayerProxy+MPV.swift` (wraps `MPVPlayerView`, forwards `manager.secondsBox` → `containerState.scrubbedSeconds` when not scrubbing). Without it the player UI freezes at the start position.
+**CRITICAL — player-view bridge (`MPVPlayerBodyView`):** upstream wires player-specific behavior inline in the VLC player view; the MPV equivalent is `MPVPlayerBodyView` in `MediaPlayerProxy+MPV.swift`. It currently bridges:
+- `manager.secondsBox` → `containerState.scrubbedSeconds` (drives progress bar/timestamps — without it the player UI freezes at the start position)
+- `manager.rate` → `proxy.setRate` (playback speed menu — without it speed changes do nothing)
+- `Defaults[.VideoPlayer.Subtitle.configuration]` changes → `proxy.setSubtitleConfiguration` (live subtitle styling)
+
+The initial playback rate is applied in `MPVController.loadFile` via `MPVPlayerConfiguration.playbackRate` (mirrors VLC's `configuration.rate`).
+
+**RULE — new upstream controls must be mapped to MPV.** On every merge, diff upstream's VLC player view (`MediaPlayerProxy+VLC.swift`) for new `.onChange`/`.onReceive`/observer wiring and replicate each in `MPVPlayerBodyView`; then smoke-test every control in the player UI against MPV. A control that compiles but is not bridged fails silently (the 2026-08 merge shipped a non-functional playback-speed menu this way).
 
 Small fork patches inside upstream files (re-apply after taking upstream):
 - `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackProgress.swift` — "Ends at HH:MM" wall-clock label above the slider (uses `L10n.endsAt`)
