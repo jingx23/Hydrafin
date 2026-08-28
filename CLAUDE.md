@@ -120,6 +120,8 @@ grep "mpvkit" Hydrafin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Packag
 
 ### Step 2 — resolve conflicts
 
+**RULE — fork-added controls and information are never silently dropped.** Before resolving, inventory the fork's custom player UI/behavior (see "Skip Credits / Next Episode" and "fork patches" sections above, plus `git diff <merge-base>..HEAD` for anything newer). Every item must survive the merge — ported into upstream's new structure if it moved. If upstream adds the same or an equivalent control/information display, check whether upstream's version works with MPV, then **ask the user** whether to adopt upstream's version or keep the fork's — do not decide unilaterally. (Lesson from the 2026-08 merge: the upstream player rewrite silently dropped the "Ends at" label and the MPV progress sync.)
+
 Use this policy for each conflicted file:
 
 | File | Resolution |
