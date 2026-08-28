@@ -8,7 +8,7 @@
 
 import Algorithms
 import AVKit
-import Factory
+import FactoryKit
 import Foundation
 import JellyfinAPI
 import MediaPlayer
@@ -25,6 +25,7 @@ extension BaseItemDto {
             name: person.name,
             type: .person
         )
+        self.people = [person]
     }
 }
 
@@ -32,13 +33,6 @@ extension BaseItemDto: Displayable {
 
     var displayTitle: String {
         name ?? L10n.unknown
-    }
-}
-
-extension BaseItemDto: LibraryIdentifiable {
-
-    var unwrappedIDHashOrZero: Int {
-        id?.hashValue ?? 0
     }
 }
 
@@ -141,7 +135,7 @@ extension BaseItemDto {
 
     var birthplace: String? {
         guard type == .person else { return nil }
-        return productionLocations?.first
+        return productionLocations?.first { $0.isNotEmpty }
     }
 
     var deathday: Date? {
@@ -165,6 +159,15 @@ extension BaseItemDto {
         channelType == .tv
     }
 
+    var isAiring: Bool {
+        if let currentProgram {
+            return currentProgram.isAiring
+        }
+
+        guard let startDate, let endDate else { return false }
+        return startDate <= .now && .now <= endDate
+    }
+
     /// Whether the item has independent playable content, similar
     /// to if an item can provide its own media sources.
     ///
@@ -185,7 +188,11 @@ extension BaseItemDto {
     /// image used in the now playing system.
     @MainActor
     func getNowPlayingImage() async -> UIImage? {
-        let imageSources = thumbImageSources()
+        let imageSources = imageSources(
+            for: preferredPosterDisplayType,
+            size: .small,
+            environment: .init(useParent: true)
+        )
 
         guard let firstImage = await ImagePipeline.Swiftfin.other.loadFirstImage(from: imageSources) else {
             let failedSystemContentView = SystemImageContentView(
@@ -203,7 +210,7 @@ extension BaseItemDto {
             Rectangle()
                 .fill(Color.secondarySystemFill)
 
-            transform(image: image)
+            transform(image: image, displayType: preferredPosterDisplayType)
         }
         .posterAspectRatio(preferredPosterDisplayType, contentMode: .fit)
         .frame(width: 400)
@@ -212,27 +219,38 @@ extension BaseItemDto {
     }
 
     func getPlaybackItemProvider(
-        userSession: UserSession
-    ) -> MediaPlayerItemProvider {
+        userSession: UserSession?,
+        mediaSource: MediaSourceInfo? = nil
+    ) -> MediaPlayerItemProvider? {
         switch type {
         case .program:
-            MediaPlayerItemProvider(item: self) { program in
-                guard let channel = try? await self.getChannel(
+            guard isAiring, let userSession else { return nil }
+
+            return MediaPlayerItemProvider(item: self) { program, modifyItem in
+                guard let channel = try? await program.getChannel(
                     for: program,
                     userSession: userSession
-                ),
-                    let mediaSource = channel.mediaSources?.first
-                else {
+                ) else {
                     throw ErrorMessage(L10n.unknownError)
                 }
-                return try await MediaPlayerItem.build(for: program, mediaSource: mediaSource)
+
+                return try await MediaPlayerItem.build(
+                    for: channel,
+                    modifyItem: modifyItem
+                )
             }
         default:
-            MediaPlayerItemProvider(item: self) { item in
-                guard let mediaSource = item.mediaSources?.first else {
-                    throw ErrorMessage(L10n.unknownError)
-                }
-                return try await MediaPlayerItem.build(for: item, mediaSource: mediaSource)
+            let selectedMediaSource = mediaSource ?? mediaSources?.first
+
+            return MediaPlayerItemProvider(
+                item: self,
+                mediaSource: selectedMediaSource
+            ) { item, modifyItem in
+                try await MediaPlayerItem.build(
+                    for: item,
+                    mediaSource: selectedMediaSource,
+                    modifyItem: modifyItem
+                )
             }
         }
     }
@@ -244,8 +262,7 @@ extension BaseItemDto {
         guard type == .program else { return nil }
 
         var parameters = Paths.GetItemsParameters()
-        parameters.fields = .MinimumFields
-        parameters.ids = [program.channelID ?? ""]
+        parameters.ids = program.channelID.flatMap { [$0] }
 
         let request = Paths.getItems(parameters: parameters)
         let response = try await userSession.client.send(request)
@@ -254,7 +271,7 @@ extension BaseItemDto {
     }
 
     var runtime: Duration? {
-        guard let ticks = runTimeTicks else { return nil }
+        guard let ticks = runTimeTicks, ticks > 0 else { return nil }
         return Duration.ticks(ticks)
     }
 
@@ -285,18 +302,29 @@ extension BaseItemDto {
     }
 
     var progressLabel: String? {
-        guard let playbackPositionTicks = userData?.playbackPositionTicks,
-              let totalTicks = runTimeTicks,
-              playbackPositionTicks != 0,
-              totalTicks != 0 else { return nil }
+        if let currentProgram {
+            return currentProgram.progressLabel
+        }
 
-        let remainingSeconds = (totalTicks - playbackPositionTicks) / 10_000_000
+        let interval: TimeInterval
+
+        if let playbackPositionTicks = userData?.playbackPositionTicks,
+           let totalTicks = runTimeTicks,
+           playbackPositionTicks != 0,
+           totalTicks != 0
+        {
+            interval = TimeInterval((totalTicks - playbackPositionTicks) / 10_000_000)
+        } else if isAiring, let startDate {
+            interval = Date.now.timeIntervalSince(startDate)
+        } else {
+            return nil
+        }
 
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute]
         formatter.unitsStyle = .abbreviated
 
-        return formatter.string(from: .init(remainingSeconds))
+        return formatter.string(from: interval)
     }
 
     var programDuration: TimeInterval? {
@@ -322,6 +350,29 @@ extension BaseItemDto {
         return progress / length
     }
 
+    var progressPercentage: Double? {
+        if let currentProgram {
+            return currentProgram.progressPercentage
+        }
+
+        if isAiring, let startDate, let endDate {
+            let length = endDate.timeIntervalSince(startDate)
+            guard length > 0 else { return nil }
+
+            return clamp(
+                Date.now.timeIntervalSince(startDate) / length,
+                min: 0,
+                max: 1
+            )
+        }
+
+        guard let playedPercentage = userData?.playedPercentage, playedPercentage > 0 else {
+            return nil
+        }
+
+        return playedPercentage / 100
+    }
+
     var subtitleStreams: [MediaStream] {
         mediaStreams?.filter { $0.type == .subtitle } ?? []
     }
@@ -341,11 +392,20 @@ extension BaseItemDto {
     }
 
     var isUnaired: Bool {
-        if let premierDate = premiereDate {
-            premierDate > Date()
-        } else {
-            false
+        if let startDate {
+            return startDate > Date.now
         }
+
+        if let premiereDate {
+            return premiereDate > Date.now
+        }
+
+        return false
+    }
+
+    var hasAired: Bool {
+        guard let startDate, let endDate else { return false }
+        return startDate <= Date.now && endDate < Date.now
     }
 
     var airDateLabel: String? {
@@ -408,7 +468,7 @@ extension BaseItemDto {
 
                 let imageURL = userSession
                     .client
-                    .fullURL(with: request)
+                    .url(with: request)
 
                 return .init(
                     chapterInfo: chapter,
@@ -463,12 +523,22 @@ extension BaseItemDto {
         }
     }
 
+    /// Can this `BaseItemDto` be favorited
+    var canBeFavorited: Bool {
+        switch type {
+        case .program, .liveTvProgram, .tvProgram:
+            false
+        default:
+            true
+        }
+    }
+
     /// Can this `BaseItemDto` be mark as played
     var canBePlayed: Bool {
         switch type {
-        case .audio, .audioBook, .book, .boxSet, .channel, .channelFolderItem, .collectionFolder, .episode, .manualPlaylistsFolder,
-             .movie, .liveTvChannel, .liveTvProgram, .musicAlbum, .musicArtist, .musicVideo, .playlist, .playlistsFolder,
-             .program, .recording, .season, .series, .trailer, .tvChannel, .tvProgram, .video:
+        case .audio, .audioBook, .book, .boxSet, .channelFolderItem, .collectionFolder, .episode, .manualPlaylistsFolder,
+             .movie, .musicAlbum, .musicArtist, .musicVideo, .playlist, .playlistsFolder, .recording, .season,
+             .series, .trailer, .video:
             true
         default:
             false
@@ -479,6 +549,10 @@ extension BaseItemDto {
 
         if isUnaired {
             return L10n.unaired
+        }
+
+        if hasAired {
+            return L10n.ended
         }
 
         if isMissing {
@@ -497,7 +571,7 @@ extension BaseItemDto {
         switch type {
         case .audio:
             L10n.album
-        case .episode:
+        case .episode, .season:
             L10n.series
         case .musicAlbum:
             L10n.artist
@@ -510,12 +584,23 @@ extension BaseItemDto {
         switch type {
         case .audio:
             album
-        case .episode:
+        case .episode, .season:
             seriesName
         case .musicAlbum:
             albumArtist
+        case .liveTvProgram, .program, .tvProgram:
+            channelName
         default:
             nil
+        }
+    }
+
+    var parentRootID: String? {
+        switch type {
+        case .episode:
+            seriesID
+        default:
+            parentID
         }
     }
 

@@ -51,7 +51,7 @@ final class APIKeysViewModel: ViewModel {
     @Function(\Action.Cases.refresh)
     private func _refresh() async throws {
         let request = Paths.getKeys
-        let response = try await userSession.client.send(request)
+        let response = try await send(request)
 
         guard let items = response.value.items else { return }
 
@@ -65,10 +65,10 @@ final class APIKeysViewModel: ViewModel {
     @Function(\Action.Cases.create)
     private func _create(_ name: String) async throws {
         let request = Paths.createKey(app: name)
-        try await userSession.client.send(request)
+        try await send(request)
 
-        // API does not return the new key so a full refresh is required.
-        // There is no API to return a single API Key.
+        /// API does not return the new key so a full refresh is required.
+        /// There is no API to return a single API Key.
         try await _refresh()
 
         events.send(.createdKey)
@@ -93,7 +93,7 @@ final class APIKeysViewModel: ViewModel {
         }
 
         let request = Paths.revokeKey(key: accessToken)
-        try await userSession.client.send(request)
+        try await send(request)
 
         apiKeys.removeFirst(equalTo: key)
     }

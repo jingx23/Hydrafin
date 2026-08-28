@@ -14,7 +14,6 @@ extension NavigationCoordinator {
     struct Router {
 
         let navigationCoordinator: NavigationCoordinator?
-        let rootCoordinator: RootCoordinator?
 
         func route(
             to route: NavigationRoute,
@@ -26,12 +25,6 @@ extension NavigationCoordinator {
             route.transitionType = transition ?? route.transitionType
             navigationCoordinator?.push(route)
         }
-
-        func root(
-            _ root: RootItem
-        ) {
-            rootCoordinator?.root(root)
-        }
     }
 }
 
@@ -42,6 +35,22 @@ struct Router: DynamicProperty {
     struct Wrapper {
         let router: NavigationCoordinator.Router
         let dismiss: DismissAction
+
+        private let isRootBox: PublishedBox<Bool?> = .init(initialValue: nil)
+
+        var isRootOfPath: Bool {
+            if let boxValue = isRootBox.value {
+                return boxValue
+            }
+
+            guard let router = router.navigationCoordinator else {
+                return false
+            }
+
+            let value = router.path.isEmpty
+            isRootBox.value = value
+            return value
+        }
 
         func route(
             to route: NavigationRoute,
@@ -77,23 +86,25 @@ struct Router: DynamicProperty {
                 in: namespace
             )
         }
-
-        func root(
-            _ root: RootItem
-        ) {
-            router.root(root)
-        }
     }
 
-    /// `.dismiss` causes changes on disappear
+    // `.dismiss` causes changes on disappear
     @Environment(\.self)
     private var environment
 
+    private let wrapperBox: PublishedBox<Wrapper?> = .init(initialValue: nil)
+
     var wrappedValue: Wrapper {
-        .init(
+        if let wrapper = wrapperBox.value {
+            return wrapper
+        }
+
+        let value = Wrapper(
             router: environment.router,
             dismiss: environment.dismiss
         )
+        wrapperBox.value = value
+        return value
     }
 }
 
@@ -101,7 +112,6 @@ extension EnvironmentValues {
 
     @Entry
     var router: NavigationCoordinator.Router = .init(
-        navigationCoordinator: nil,
-        rootCoordinator: nil
+        navigationCoordinator: nil
     )
 }

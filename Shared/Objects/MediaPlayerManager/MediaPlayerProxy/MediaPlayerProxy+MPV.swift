@@ -8,7 +8,7 @@
 
 import Combine
 import Defaults
-import Factory
+import FactoryKit
 import Foundation
 import JellyfinAPI
 import Libmpv
@@ -144,6 +144,12 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
 
     // MARK: - Subtitle Configuration
 
+    func setSubtitleConfiguration(_ configuration: SubtitleConfiguration) {
+        setSubtitleColor(configuration.color)
+        setSubtitleFontName(configuration.fontName)
+        setSubtitleFontSize(25 - configuration.size)
+    }
+
     func setSubtitleColor(_ color: Color) {
         let uiColor = UIColor(color)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -221,9 +227,9 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
             startSeconds: baseItem.isLiveStream ? nil : startSeconds,
             audioTrackID: mpvAudioTrackID,
             subtitleTrackID: mpvSubtitleTrackID,
-            subtitleSize: 25 - Defaults[.VideoPlayer.Subtitle.subtitleSize],
-            subtitleColor: Defaults[.VideoPlayer.Subtitle.subtitleColor],
-            subtitleFontName: Defaults[.VideoPlayer.Subtitle.subtitleFontName],
+            subtitleSize: 25 - Defaults[.VideoPlayer.Subtitle.configuration].size,
+            subtitleColor: Defaults[.VideoPlayer.Subtitle.configuration].color,
+            subtitleFontName: Defaults[.VideoPlayer.Subtitle.configuration].fontName,
             subtitleForcedEventsOnly: subtitleForcedEventsOnly,
             externalSubtitles: item.subtitleStreams
                 .filter { $0.deliveryMethod == .external }
@@ -233,7 +239,7 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
                     let deliveryPath = deliveryURL.removingFirst(
                         if: client.configuration.url.absoluteString.last == "/"
                     )
-                    guard let fullURL = client.fullURL(with: deliveryPath) else { return nil }
+                    guard let fullURL = client.url(path: deliveryPath) else { return nil }
                     return (url: fullURL, title: stream.displayTitle ?? "")
                 }
         )
@@ -305,7 +311,9 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
         streamType: MediaStreamType,
         playbackItem: MediaPlayerItem
     ) -> Int? {
-        if let type = stream.type, type != streamType { return nil }
+        if let type = stream.type, type != streamType {
+            return nil
+        }
         if let index = stream.index,
            let direct = playbackItem.mediaSource.mediaStreams?
                .first(where: { $0.type == streamType && $0.index == index })

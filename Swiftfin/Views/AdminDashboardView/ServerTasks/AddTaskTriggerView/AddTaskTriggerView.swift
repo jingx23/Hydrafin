@@ -53,6 +53,7 @@ struct AddTaskTriggerView: View {
 
     // MARK: - View for TaskTriggerInfoType.daily
 
+    @ViewBuilder
     private var dailyView: some View {
         TimeRow(taskTriggerInfo: $taskTriggerInfo)
     }
@@ -75,6 +76,7 @@ struct AddTaskTriggerView: View {
 
     // MARK: - View for TaskTriggerInfoType.interval
 
+    @ViewBuilder
     private var intervalView: some View {
         IntervalRow(taskTriggerInfo: $taskTriggerInfo)
     }
@@ -108,7 +110,7 @@ struct AddTaskTriggerView: View {
         .animation(.linear(duration: 0.2), value: taskTriggerInfo.type)
         .interactiveDismissDisabled(true)
         .navigationTitle(L10n.addTrigger.localizedCapitalized)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbarTitleDisplayMode(.inline)
         .navigationBarCloseButton {
             if hasUnsavedChanges {
                 isPresentingNotSaved = true
@@ -117,14 +119,23 @@ struct AddTaskTriggerView: View {
             }
         }
         .topBarTrailing {
-            Button(L10n.save) {
-
+            let saveAction: () -> Void = {
                 UIDevice.impact(.light)
 
                 observer.addTrigger(taskTriggerInfo)
                 router.dismiss()
             }
-            .buttonStyle(.toolbarPill)
+
+            Group {
+                if #available(iOS 26, *) {
+                    Button(L10n.save, role: .confirm, action: saveAction)
+                } else {
+                    Button(L10n.save, action: saveAction)
+                        .backport
+                        .buttonStyle(.glassProminent)
+                        .controlSize(.small)
+                }
+            }
             .disabled(isDuplicate)
         }
         .alert(L10n.unsavedChangesMessage, isPresented: $isPresentingNotSaved) {

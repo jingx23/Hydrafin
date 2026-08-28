@@ -7,27 +7,28 @@
 //
 
 import Defaults
-import Factory
+import FactoryKit
 import JellyfinAPI
 import SwiftUI
 
 struct SettingsView: View {
 
-    @Router
-    var router
-
     #if os(iOS)
     @Default(.userAppearance)
     private var appearance
+    #endif
+
     @Default(.userAccentColor)
     private var accentColor
-    #else
-    @Default(.accentColor)
-    private var accentColor
-    #endif
 
     @Default(.VideoPlayer.videoPlayerType)
     private var videoPlayerType
+
+    @Injected(\.userSessionManager)
+    private var userSessionManager: UserSessionManager
+
+    @Router
+    private var router
 
     @StateObject
     private var viewModel = SettingsViewModel()
@@ -53,46 +54,66 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var serverSection: some View {
-        Section {
-            UserProfileRow(user: viewModel.userSession.user.data) {
-                router.route(to: .localUserSettings(viewModel: viewModel))
-            }
-
-            ChevronButton(
-                L10n.server,
-                action: {
-                    router.route(to: .editServer(server: viewModel.userSession.server))
+        if let userSession = viewModel.userSession {
+            Section {
+                UserProfileRow(user: userSession.user.data) {
+                    router.route(to: .localUserSettings(user: userSession.user.data))
                 }
-            ) {
-                EmptyView()
-            } subtitle: {
-                Label {
-                    Text(viewModel.userSession.server.name)
-                } icon: {
-                    if !viewModel.userSession.server.isVersionCompatible {
-                        Image(systemName: "exclamationmark.circle.fill")
+
+                ChevronButton(
+                    L10n.server,
+                    action: {
+                        router.route(to: .editLocalServer(server: userSession.server))
+                    }
+                ) {
+                    Label {
+                        Text(userSession.server.name)
+                    } icon: {
+                        if !userSession.server.isVersionCompatible {
+                            Image(systemName: "exclamationmark.circle.fill")
+                        }
+                    }
+                    .labelStyle(.sectionFooterWithImage(imageStyle: .orange))
+                }
+
+                #if os(iOS)
+                if userSession.user.data.policy?.isAdministrator == true {
+                    ChevronButton(L10n.dashboard) {
+                        router.route(to: .adminDashboard)
                     }
                 }
-                .labelStyle(.sectionFooterWithImage(imageStyle: .orange))
+                #endif
             }
-
-            #if os(iOS)
-            if viewModel.userSession?.user.data.policy?.isAdministrator == true {
-                ChevronButton(L10n.dashboard) {
-                    router.route(to: .adminDashboard)
-                }
-            }
-            #endif
         }
 
         Section {
-            Button(L10n.switchUser) {
-                UIDevice.impact(.medium)
-                viewModel.signOut()
-                router.dismiss()
+            Button {
+                Task { @MainActor in
+                    UIDevice.impact(.medium)
+                    await userSessionManager.signOut(reason: .explicit)
+                    router.dismiss()
+                }
+            } label: {
+                Text(L10n.switchUser)
+                    .frame(maxWidth: .infinity)
+                    // Otherwise non-Liquid Glass only uses text height
+                    .if(!UIDevice.supportsLiquidGlass) { button in
+                        button
+                            .frame(maxHeight: .infinity)
+                    }
             }
-            .buttonStyle(.primary)
-            .foregroundStyle(accentColor.overlayColor, accentColor)
+            .listRowInsets(.zero)
+            .listRowBackground(Color.clear)
+            #if os(iOS)
+                .listRowSeparator(.hidden)
+            #endif
+                .fontWeight(.semibold)
+                .backport
+                .buttonStyle(.glassProminent.shadow(false))
+                .tint(accentColor)
+            #if os(iOS)
+                .controlSize(.large)
+            #endif
         }
     }
 
@@ -103,10 +124,6 @@ struct SettingsView: View {
         Section(L10n.videoPlayer) {
             #if os(iOS)
             Picker(L10n.videoPlayerType, selection: $videoPlayerType)
-
-            ChevronButton(L10n.nativePlayer) {
-                router.route(to: .nativePlayerSettings)
-            }
             #else
             ListRowMenu(L10n.videoPlayerType, selection: $videoPlayerType)
             #endif
@@ -138,6 +155,7 @@ struct SettingsView: View {
             #if os(iOS)
             Picker(L10n.appearance, selection: $appearance)
             #endif
+
             ColorPicker(L10n.accentColor, selection: $accentColor, supportsOpacity: false)
 
             ChevronButton(L10n.advanced) {

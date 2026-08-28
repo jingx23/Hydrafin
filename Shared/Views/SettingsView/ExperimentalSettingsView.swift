@@ -7,16 +7,38 @@
 //
 
 import Defaults
+import FactoryKit
 import SwiftUI
 
 /// `Note`: Used for experimental settings that may be removed or implemented officially. Keep for future settings.
 struct ExperimentalSettingsView: View {
 
-    static let isEnabled = false
+    static let isEnabled = true
 
-    @ViewBuilder
+    @Default(.Experimental.serverConnectionAutoSwitch)
+    private var isServerConnectionAutoSwitchEnabled
+    @Default(.Experimental.videoPlayerEPG)
+    private var isVideoPlayerEPGEnabled
+
+    @Injected(\.userSessionManager)
+    private var userSessionManager: UserSessionManager
+
     var body: some View {
-        Form(systemImage: "flask") {}
-            .navigationTitle(L10n.experimental)
+        Form(systemImage: "flask") {
+            // swiftlint:disable hard_coded_display_string
+            Toggle("Live TV EPG", isOn: $isVideoPlayerEPGEnabled)
+
+            #if os(iOS)
+            Toggle("Auto switch connection", isOn: $isServerConnectionAutoSwitchEnabled)
+            #endif
+
+            // swiftlint:enable hard_coded_display_string
+        }
+        .onChange(of: isServerConnectionAutoSwitchEnabled) {
+            if isServerConnectionAutoSwitchEnabled {
+                userSessionManager.scheduleServerConnectionResolution()
+            }
+        }
+        .navigationTitle(L10n.experimental)
     }
 }

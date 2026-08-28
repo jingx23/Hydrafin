@@ -10,18 +10,33 @@ import Foundation
 import JellyfinAPI
 import SwiftUI
 
-extension RemoteImageInfo: @retroactive Identifiable, Poster {
+extension RemoteImageInfo: @retroactive Identifiable {
+
+    public var id: Int {
+        hashValue
+    }
+
+    var primaryImageSource: ImageSource {
+        ImageSource(url: url?.url)
+    }
+
+    var thumbnailImageSource: ImageSource {
+        ImageSource(url: thumbnailURL?.url)
+    }
+
+    private var imageSources: [ImageSource] {
+        [thumbnailImageSource, primaryImageSource]
+    }
+}
+
+extension RemoteImageInfo: Poster {
 
     var preferredPosterDisplayType: PosterDisplayType {
-        .portrait
+        type?.posterDisplayType() ?? .landscape
     }
 
     var displayTitle: String {
         providerName ?? L10n.unknown
-    }
-
-    var unwrappedIDHashOrZero: Int {
-        id
     }
 
     var subtitle: String? {
@@ -32,11 +47,21 @@ extension RemoteImageInfo: @retroactive Identifiable, Poster {
         "photo"
     }
 
-    public var id: Int {
-        hashValue
+    func portraitImageSources(
+        environment: Empty
+    ) -> [ImageSource] {
+        imageSources
     }
 
-    func transform(image: Image) -> some View {
-        image
+    func landscapeImageSources(
+        environment: Empty
+    ) -> [ImageSource] {
+        imageSources
+    }
+
+    func squareImageSources(
+        environment: Empty
+    ) -> [ImageSource] {
+        imageSources
     }
 }

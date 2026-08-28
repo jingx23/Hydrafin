@@ -7,11 +7,12 @@
 //
 
 import Combine
-import Factory
+import FactoryKit
 import Foundation
 import Get
 import JellyfinAPI
 import KeychainSwift
+import Logging
 import OrderedCollections
 import SwiftUI
 
@@ -20,16 +21,13 @@ import SwiftUI
 //       - won't require deleting and re-signing in user for password changes
 //       - account for local device auth required
 // TODO: ignore NSURLErrorDomain Code=-999 cancelled error on sign in
-//       - need to make NSError wrappres anyways
-
-// Note: UserDto in StoredValues so that it doesn't need to be passed
-//       around along with the user UserState. Was just easy
+//       - need to make NSError wrappers anyways
 
 @MainActor
 @Stateful
-final class UserSignInViewModel: ViewModel {
+final class UserSignInViewModel: ObservableObject {
 
-    typealias AccessPolicyPair = (policy: UserAccessPolicy, evaluated: any EvaluatedLocalUserAccessPolicy)
+    typealias AccessPolicyPair = (policy: LocalUserAccessPolicy, evaluated: any EvaluatedLocalUserAccessPolicy)
     typealias UserStateDataPair = (state: (state: UserState, accessToken: String), data: UserDto)
 
     struct EvaluatedPolicyMap {
@@ -50,13 +48,13 @@ final class UserSignInViewModel: ViewModel {
 
         case save(
             user: UserStateDataPair,
-            authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: UserAccessPolicy, reason: String?),
+            authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: LocalUserAccessPolicy, reason: String?),
             evaluatedPolicyMap: EvaluatedPolicyMap
         )
         case saveExisting(
             user: UserStateDataPair,
             replaceForAccessToken: Bool,
-            authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: UserAccessPolicy, reason: String?),
+            authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: LocalUserAccessPolicy, reason: String?),
             evaluatedPolicyMap: EvaluatedPolicyMap
         )
 
@@ -96,11 +94,13 @@ final class UserSignInViewModel: ViewModel {
     @Published
     private(set) var serverDisclaimer: String? = nil
 
+    private let logger = Logger.swiftfin()
+    private var cancellables = Set<AnyCancellable>()
+
     let server: ServerState
 
     init(server: ServerState) {
         self.server = server
-        super.init()
     }
 
     @Function(\Action.Cases.getPublicData)
@@ -187,7 +187,7 @@ final class UserSignInViewModel: ViewModel {
     @Function(\Action.Cases.save)
     private func _save(
         _ user: UserStateDataPair,
-        _ authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: UserAccessPolicy, reason: String?),
+        _ authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: LocalUserAccessPolicy, reason: String?),
         _ evaluatedPolicyMap: EvaluatedPolicyMap
     ) async throws {
 
@@ -243,7 +243,7 @@ final class UserSignInViewModel: ViewModel {
     private func _saveExisting(
         _ user: UserStateDataPair,
         _ replaceForAccessToken: Bool,
-        _ authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: UserAccessPolicy, reason: String?),
+        _ authenticationAction: (action: LocalUserAuthenticationAction, accessPolicy: LocalUserAccessPolicy, reason: String?),
         _ evaluatedPolicyMap: EvaluatedPolicyMap
     ) async throws {
 

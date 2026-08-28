@@ -7,31 +7,19 @@
 //
 
 import Combine
-import Defaults
 import JellyfinAPI
 import SwiftUI
 
 struct ServerUserPermissionsView: View {
 
-    // MARK: - Observed & Environment Objects
+    @ObservedObject
+    var viewModel: ServerUserAdminViewModel
 
     @Router
     private var router
 
-    @ObservedObject
-    var viewModel: ServerUserAdminViewModel
-
-    // MARK: - Policy Variable
-
     @State
     private var tempPolicy: UserPolicy
-
-    // MARK: - Error State
-
-    @State
-    private var error: Error?
-
-    // MARK: - Initializer
 
     init(viewModel: ServerUserAdminViewModel) {
         self._viewModel = ObservedObject(wrappedValue: viewModel)
@@ -46,54 +34,60 @@ struct ServerUserPermissionsView: View {
     // MARK: - Body
 
     var body: some View {
-        contentView
-            .navigationTitle(L10n.permissions)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarCloseButton {
+        ZStack {
+            switch viewModel.state {
+            case .initial:
+                ProgressView()
+            case .content:
+                contentView
+            case .error:
+                viewModel.error.map {
+                    ErrorView(error: $0)
+                }
+            }
+        }
+        .toolbarTitleDisplayMode(.inline)
+        .navigationTitle(L10n.permissions)
+        .navigationBarCloseButton {
+            router.dismiss()
+        }
+        .refreshable {
+            viewModel.refresh()
+        }
+        .topBarTrailing {
+            if viewModel.background.is(.updating) {
+                ProgressView()
+            }
+            let saveAction: () -> Void = {
+                if tempPolicy != viewModel.user.policy {
+                    viewModel.updatePolicy(tempPolicy)
+                }
+            }
+
+            Group {
+                if #available(iOS 26, *) {
+                    Button(L10n.save, role: .confirm, action: saveAction)
+                } else {
+                    Button(L10n.save, action: saveAction)
+                        .backport
+                        .buttonStyle(.glassProminent)
+                        .controlSize(.small)
+                }
+            }
+            .disabled(viewModel.user.policy == tempPolicy)
+        }
+        .onReceive(viewModel.events) { event in
+            switch event {
+            case .updated:
+                UIDevice.feedback(.success)
                 router.dismiss()
             }
-            .topBarTrailing {
-                if viewModel.backgroundStates.contains(.updating) {
-                    ProgressView()
-                }
-                Button(L10n.save) {
-                    if tempPolicy != viewModel.user.policy {
-                        viewModel.send(.updatePolicy(tempPolicy))
-                    }
-                }
-                .buttonStyle(.toolbarPill)
-                .disabled(viewModel.user.policy == tempPolicy)
-            }
-            .onReceive(viewModel.events) { event in
-                switch event {
-                case let .error(eventError):
-                    UIDevice.feedback(.error)
-                    error = eventError
-                case .updated:
-                    UIDevice.feedback(.success)
-                    router.dismiss()
-                }
-            }
-            .errorMessage($error)
+        }
+        .errorMessage($viewModel.error)
     }
-
-    // MARK: - Content View
 
     @ViewBuilder
-    var contentView: some View {
-        switch viewModel.state {
-        case let .error(error):
-            ErrorView(error: error)
-        case .initial:
-            ErrorView(error: ErrorMessage(L10n.loadingUserFailed))
-        default:
-            permissionsListView
-        }
-    }
-
-    // MARK: - Permissions List View
-
-    var permissionsListView: some View {
+    private var contentView: some View {
         List {
             StatusSection(policy: $tempPolicy)
 

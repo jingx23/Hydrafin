@@ -14,15 +14,14 @@ extension URL {
         guard let string else { return nil }
         self.init(string: string)
     }
-}
-
-extension URL {
 
     static let swiftfinGithub: URL = URL(string: "https://github.com/jellyfin/Swiftfin")!
 
     static let swiftfinGithubLicense: URL = URL(string: "https://github.com/jellyfin/Swiftfin/blob/main/LICENSE.md")!
 
     static let swiftfinGithubIssues: URL = URL(string: "https://github.com/jellyfin/Swiftfin/issues")!
+
+    static let jellyfinDocsBackup: URL = URL(string: "https://jellyfin.org/docs/general/administration/backup-and-restore/")!
 
     static let jellyfinDocsDevices: URL = URL(string: "https://jellyfin.org/docs/general/server/devices")!
 
@@ -60,7 +59,7 @@ extension URL {
         }
     }
 
-    /// doesn't have `?` but doesn't matter
+    // doesn't have `?` but doesn't matter
     var pathAndQuery: String? {
         path + (query ?? "")
     }
@@ -76,5 +75,18 @@ extension URL {
 
     var components: URLComponents? {
         URLComponents(url: self, resolvingAgainstBaseURL: false)
+    }
+
+    var normalizedServerConnectionURL: URL? {
+        guard var components else { return nil }
+
+        components.scheme = components.scheme?.lowercased()
+        components.host = components.host?.lowercased()
+
+        if components.path.isNotEmpty {
+            components.path = components.path.trimmingSuffix("/")
+        }
+
+        return components.url
     }
 }

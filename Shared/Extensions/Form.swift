@@ -69,7 +69,7 @@ private struct PlatformForm<Image: View, Content: View>: PlatformView {
         Form {
             content
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbarTitleDisplayMode(.inline)
     }
 
     var tvOSView: some View {
@@ -80,7 +80,6 @@ private struct PlatformForm<Image: View, Content: View>: PlatformView {
             Form {
                 content
             }
-            .backport
             .scrollClipDisabled()
             .mask(extendedBy: .init(vertical: 20, horizontal: 100)) {
                 VStack(spacing: 0) {
@@ -104,6 +103,7 @@ private struct PlatformForm<Image: View, Content: View>: PlatformView {
         }
     }
 
+    @ViewBuilder
     private var descriptionView: some View {
         ZStack {
             image
@@ -115,6 +115,7 @@ private struct PlatformForm<Image: View, Content: View>: PlatformView {
         .animation(.linear(duration: 0.2), value: focusedLearnMore == nil)
     }
 
+    @ViewBuilder
     private func learnMoreModal(_ content: AnyView) -> some View {
         Marquee(axis: .vertical, resetType: .bounce, speed: 30, fade: 20) {
             VStack(alignment: .leading, spacing: 16) {

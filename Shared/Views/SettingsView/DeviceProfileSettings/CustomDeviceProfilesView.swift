@@ -52,7 +52,9 @@ struct CustomDeviceProfilesView: View {
             if customProfiles.isNotEmpty {
                 addButton
                 #if os(iOS)
-                .buttonStyle(.toolbarPill)
+                .backport
+                .buttonStyle(.glassProminent)
+                .controlSize(.small)
                 #endif
             }
         }
@@ -96,16 +98,12 @@ struct CustomDeviceProfilesView: View {
                 ChevronButton {
                     router.route(to: .editDeviceProfile(profile: $profile))
                 } label: {
-                    LabeledContent {
-                        EmptyView()
-                    } label: {
-                        profileView(
-                            useAsTranscodingProfile: profile.useAsTranscodingProfile,
-                            audio: profile.audio,
-                            video: profile.video,
-                            containers: profile.container
-                        )
-                    }
+                    profileView(
+                        useAsTranscodingProfile: profile.useAsTranscodingProfile,
+                        audio: profile.audio,
+                        video: profile.video,
+                        containers: profile.container
+                    )
                 }
                 #if os(iOS)
                 .swipeActions {

@@ -14,9 +14,9 @@ extension NavigationRoute {
 
     // MARK: - Active Sessions
 
-    static func activeDeviceDetails(box: BindingBox<SessionInfoDto?>) -> NavigationRoute {
-        NavigationRoute(id: "activeDeviceDetails") {
-            ActiveSessionDetailView(box: box)
+    static func activeSessionDetails(viewModel: SessionViewModel) -> NavigationRoute {
+        NavigationRoute(id: "activeSessionDetails") {
+            ActiveSessionDetailsView(viewModel: viewModel)
         }
     }
 
@@ -44,12 +44,12 @@ extension NavigationRoute {
         }
     }
 
-    static func activityFilters(viewModel: ServerActivityViewModel) -> NavigationRoute {
+    static func activityFilters(environment: Binding<ServerActivityLibrary.Environment>) -> NavigationRoute {
         NavigationRoute(
             id: "activityFilters",
             style: .sheet
         ) {
-            ServerActivityFilterView(viewModel: viewModel)
+            ServerActivityFilterView(environment: environment)
         }
     }
 
@@ -82,6 +82,33 @@ extension NavigationRoute {
             id: "apiKeys"
         ) {
             APIKeysView()
+        }
+    }
+
+    // MARK: - Backups
+
+    static var backups: NavigationRoute {
+        NavigationRoute(
+            id: "backups"
+        ) {
+            ServerBackupView()
+        }
+    }
+
+    static func backupDetails(viewModel: ServerBackupViewModel, backup: BackupManifestDto) -> NavigationRoute {
+        NavigationRoute(
+            id: "backupDetails"
+        ) {
+            ServerBackupDetailsView(viewModel: viewModel, backup: backup)
+        }
+    }
+
+    static func createBackup(viewModel: ServerBackupViewModel) -> NavigationRoute {
+        NavigationRoute(
+            id: "createBackup",
+            style: .sheet
+        ) {
+            CreateServerBackupView(viewModel: viewModel)
         }
     }
 

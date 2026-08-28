@@ -48,6 +48,7 @@ extension EditMetadataView {
 
         // MARK: - Series Status View
 
+        @ViewBuilder
         private var seriesStatusView: some View {
             Picker(
                 L10n.status,
@@ -66,6 +67,7 @@ extension EditMetadataView {
 
         // MARK: - Air Time View
 
+        @ViewBuilder
         private var airTimeView: some View {
             DatePicker(
                 L10n.airTime,
@@ -81,6 +83,7 @@ extension EditMetadataView {
 
         // MARK: - Air Days View
 
+        @ViewBuilder
         private var airDaysView: some View {
             ForEach(DayOfWeek.allCases, id: \.self) { field in
                 Toggle(
@@ -94,31 +97,42 @@ extension EditMetadataView {
 
         // MARK: - Run Time View
 
+        @ViewBuilder
         private var runTimeView: some View {
-            ChevronButton(
-                L10n.runtime,
-                subtitle: Text(Duration.ticks(item.runTimeTicks ?? 0), format: .hourMinuteAbbreviated),
-                description: L10n.episodeRuntimeDescription
-            ) {
-                TextField(
-                    L10n.minutes,
-                    value: $tempRunTime
-                        .coalesce(0)
-                        .min(0),
-                    format: .number
-                )
-                .keyboardType(.numberPad)
-            } onSave: {
-                if let tempRunTime, tempRunTime != 0 {
-                    item.runTimeTicks = Duration.minutes(tempRunTime).ticks
-                } else {
-                    item.runTimeTicks = nil
+            StateAdapter(initialValue: false) { isPresented in
+                ChevronButton(
+                    L10n.runtime,
+                    content: Text(Duration.ticks(item.runTimeTicks ?? 0), format: .hourMinuteAbbreviated)
+                ) {
+                    isPresented.wrappedValue = true
                 }
-            } onCancel: {
-                if let originalRunTime = item.runTimeTicks {
-                    tempRunTime = Int(Duration.ticks(originalRunTime).minutes)
-                } else {
-                    tempRunTime = nil
+                .alert(L10n.runtime, isPresented: isPresented) {
+                    TextField(
+                        L10n.minutes,
+                        value: $tempRunTime
+                            .coalesce(0)
+                            .min(0),
+                        format: .number
+                    )
+                    .keyboardType(.numberPad)
+
+                    Button(L10n.save) {
+                        if let tempRunTime, tempRunTime != 0 {
+                            item.runTimeTicks = Duration.minutes(tempRunTime).ticks
+                        } else {
+                            item.runTimeTicks = nil
+                        }
+                    }
+
+                    Button(L10n.cancel, role: .cancel) {
+                        if let originalRunTime = item.runTimeTicks {
+                            tempRunTime = Int(Duration.ticks(originalRunTime).minutes)
+                        } else {
+                            tempRunTime = nil
+                        }
+                    }
+                } message: {
+                    Text(L10n.episodeRuntimeDescription)
                 }
             }
         }

@@ -10,18 +10,78 @@ import SwiftUI
 
 struct ListRowMenu<Content: View, Subtitle: View>: View {
 
-    // MARK: - Focus State
-
     @FocusState
     private var isFocused: Bool
-
-    // MARK: - Properties
 
     private let title: Text
     private let subtitle: Subtitle?
     private let content: () -> Content
 
-    // MARK: - Body
+    @ViewBuilder
+    private var buttonView: some View {
+        if UIDevice.supportsLiquidGlass {
+            glassBody
+        } else {
+            legacyBody
+        }
+    }
+
+    @ViewBuilder
+    private var labelView: some View {
+        HStack {
+            title
+                .foregroundStyle(isFocused ? .black : .white)
+                .padding(.leading, 4)
+
+            Spacer()
+
+            if let subtitle {
+                subtitle
+                    .foregroundStyle(isFocused ? .black : .secondary)
+                    .brightness(isFocused ? 0.4 : 0)
+            }
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.body)
+                .fontWeight(.regular)
+                .foregroundStyle(isFocused ? .black : .secondary)
+                .brightness(isFocused ? 0.4 : 0)
+        }
+        .padding(.horizontal)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var glassBody: some View {
+        labelView
+            .glassEffect(
+                .regular.tint(isFocused ? .white : nil),
+                in: .capsule
+            )
+            .scaleEffect(x: isFocused ? 1.01 : 1.0, y: isFocused ? 1.05 : 1.0, anchor: .center)
+            .animation(.easeInOut(duration: 0.125), value: isFocused)
+            .listRowBackground(Color.clear)
+    }
+
+    @ViewBuilder
+    private var legacyBody: some View {
+        labelView
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12.5)
+                        .fill(isFocused ? Color.white : Color.clear)
+
+                    if isFocused {
+                        RoundedRectangle(cornerRadius: 12.5)
+                            .fill(Color.white.opacity(0.8))
+                            .scaleEffect(x: 1, y: 1.1, anchor: .center)
+                    }
+                }
+            }
+            .scaleEffect(x: isFocused ? 1.01 : 1.0, y: isFocused ? 1.05 : 1.0, anchor: .center)
+            .animation(.easeInOut(duration: 0.125), value: isFocused)
+            .listRowBackground(Color.clear)
+    }
 
     var body: some View {
         Menu(content: content) {
@@ -31,135 +91,97 @@ struct ListRowMenu<Content: View, Subtitle: View>: View {
         .listRowInsets(.zero)
         .focused($isFocused)
     }
-
-    @ViewBuilder
-    private var buttonView: some View {
-        // TODO: Remove when 26+ is our minimum
-        if #available(tvOS 26.0, *) {
-            HStack {
-                title
-                    .foregroundStyle(isFocused ? .black : .white)
-                    .padding(.leading, 4)
-
-                Spacer()
-
-                if let subtitle {
-                    subtitle
-                        .foregroundStyle(isFocused ? .black : .secondary)
-                        .brightness(isFocused ? 0.4 : 0)
-                }
-
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.body.weight(.regular))
-                    .foregroundStyle(isFocused ? .black : .secondary)
-                    .brightness(isFocused ? 0.4 : 0)
-            }
-            .padding(.horizontal)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12.5)
-                        .fill(isFocused ? Color.white : Color.clear)
-                    if isFocused {
-                        RoundedRectangle(cornerRadius: 12.5)
-                            .fill(Color.white.opacity(0.8))
-                            .scaleEffect(x: 1.0, y: isFocused ? 1.10 : 1.0, anchor: .center)
-                    }
-                }
-            )
-            .scaleEffect(x: isFocused ? 1.01 : 1.0, y: isFocused ? 1.05 : 1.0, anchor: .center)
-            .animation(.easeInOut(duration: 0.125), value: isFocused)
-            .listRowBackground(Color.clear)
-        } else {
-            HStack {
-                title
-                    .foregroundStyle(isFocused ? .black : .white)
-                    .padding(.leading, 4)
-
-                Spacer()
-
-                if let subtitle {
-                    subtitle
-                        .foregroundStyle(isFocused ? .black : .secondary)
-                        .brightness(isFocused ? 0.4 : 0)
-                }
-
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.body.weight(.regular))
-                    .foregroundStyle(isFocused ? .black : .secondary)
-                    .brightness(isFocused ? 0.4 : 0)
-            }
-            .padding(.horizontal)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isFocused ? Color.white : Color.clear)
-            )
-            .scaleEffect(isFocused ? 1.04 : 1.0)
-            .animation(.easeInOut(duration: 0.125), value: isFocused)
-        }
-    }
 }
 
 // MARK: - Initializers
 
-/// Base initializer
+// Base initializer
 extension ListRowMenu where Subtitle == Text? {
 
-    init(_ title: Text, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: Text,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = title
         self.subtitle = nil
         self.content = content
     }
 
-    init(_ title: Text, subtitle: Text?, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: Text,
+        subtitle: Text?,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = title
         self.subtitle = subtitle
         self.content = content
     }
 
-    init(_ title: Text, subtitle: String?, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: Text,
+        subtitle: String?,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = title
         self.subtitle = subtitle.map { Text($0) }
         self.content = content
     }
 
-    init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: String,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = Text(title)
         self.subtitle = nil
         self.content = content
     }
 
-    init(_ title: String, subtitle: String?, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: String,
+        subtitle: String?,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = Text(title)
         self.subtitle = subtitle.map { Text($0) }
         self.content = content
     }
 
-    init(_ title: String, subtitle: Text?, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: String,
+        subtitle: Text?,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = Text(title)
         self.subtitle = subtitle
         self.content = content
     }
 }
 
-/// Custom view subtitles
+// Custom view subtitles
 extension ListRowMenu {
 
-    init(_ title: String, @ViewBuilder subtitle: @escaping () -> Subtitle, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: String,
+        @ViewBuilder subtitle: @escaping () -> Subtitle,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = Text(title)
         self.subtitle = subtitle()
         self.content = content
     }
 
-    init(_ title: Text, @ViewBuilder subtitle: @escaping () -> Subtitle, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: Text,
+        @ViewBuilder subtitle: @escaping () -> Subtitle,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = title
         self.subtitle = subtitle()
         self.content = content
     }
 }
 
-/// Initialize from a CaseIterable Enum
+// Initialize from a CaseIterable Enum
 extension ListRowMenu where Subtitle == Text, Content == AnyView {
 
     init<ItemType>(

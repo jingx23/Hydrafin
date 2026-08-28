@@ -18,21 +18,16 @@ extension ActiveSessionsView {
         private var currentDate: Date
 
         @ObservedObject
-        private var box: BindingBox<SessionInfoDto?>
+        var viewModel: SessionViewModel
 
-        private let onSelect: () -> Void
+        let action: () -> Void
 
         private var session: SessionInfoDto {
-            box.value ?? .init()
+            viewModel.session
         }
 
         private var isPlaying: Bool {
             session.nowPlayingItem != nil && session.playState != nil
-        }
-
-        init(box: BindingBox<SessionInfoDto?>, onSelect action: @escaping () -> Void) {
-            self.box = box
-            self.onSelect = action
         }
 
         @ViewBuilder
@@ -45,7 +40,7 @@ extension ActiveSessionsView {
                 )
                 .frame(width: 60)
                 .frame(minHeight: 90)
-                .posterShadow()
+                .subtleShadow()
             } else {
                 ZStack {
                     session.device.clientColor
@@ -57,10 +52,11 @@ extension ActiveSessionsView {
                 }
                 .posterStyle(.square)
                 .frame(width: 60, height: 60)
-                .posterShadow()
+                .subtleShadow()
             }
         }
 
+        @ViewBuilder
         private func activeSessionDetails(_ nowPlayingItem: BaseItemDto, playState: PlayerStateInfo) -> some View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.userName ?? L10n.unknown)
@@ -81,6 +77,7 @@ extension ActiveSessionsView {
             .font(.subheadline)
         }
 
+        @ViewBuilder
         private var idleSessionDetails: some View {
             VStack(alignment: .leading, spacing: 4) {
 
@@ -115,7 +112,7 @@ extension ActiveSessionsView {
         }
 
         var body: some View {
-            ListRow(insets: .init(vertical: isPlaying ? 8 : 12, horizontal: EdgeInsets.edgePadding)) {
+            ListRow(insets: .init(vertical: 8, horizontal: EdgeInsets.edgePadding)) {
                 rowLeading
             } content: {
                 if let nowPlayingItem = session.nowPlayingItem, let playState = session.playState {
@@ -123,8 +120,10 @@ extension ActiveSessionsView {
                 } else {
                     idleSessionDetails
                 }
+            } action: {
+                action()
             }
-            .onSelect(perform: onSelect)
+            .withViewContext(.isListRowSeparatorVisible)
         }
     }
 }

@@ -14,7 +14,8 @@ extension DeviceProfile {
     static func build(
         for videoPlayer: VideoPlayerType,
         compatibilityMode: PlaybackCompatibility,
-        maxBitrate: Int? = nil
+        maxBitrate: Int? = nil,
+        maxResolution: PlaybackResolution = Defaults[.VideoPlayer.Playback.appMaximumResolution]
     ) -> DeviceProfile {
 
         var deviceProfile: DeviceProfile = .init()
@@ -22,7 +23,18 @@ extension DeviceProfile {
         // MARK: - Video Player Specific Logic
 
         deviceProfile.codecProfiles = videoPlayer.codecProfiles
-        deviceProfile.subtitleProfiles = videoPlayer.subtitleProfiles
+
+        if StoredValues[.User.forceSubtitleBurnIn] {
+            deviceProfile.subtitleProfiles = SubtitleProfile.build(method: .encode) {
+                SubtitleFormat.allCases
+            }
+        } else {
+            deviceProfile.subtitleProfiles = videoPlayer.subtitleProfiles
+        }
+
+        if let resolutionCodecProfile = maxResolution.codecProfile {
+            deviceProfile.codecProfiles?.append(resolutionCodecProfile)
+        }
 
         // MARK: - DirectPlay & Transcoding Profiles
 
@@ -74,5 +86,44 @@ extension DeviceProfile {
         }
 
         return deviceProfile
+    }
+
+    // MARK: - Playback Capability Queries
+
+    /// Whether any `DirectPlayProfile` allows media with this audio codec in the given container to be played directly.
+    func canPlay(type: DlnaProfileType, audioCodec: String?, container: String?) -> Bool {
+        (directPlayProfiles ?? []).contains { profile in
+            profile.type == type
+                && profileContains(profile: profile.audioCodec, audioCodec)
+                && profileContains(profile: profile.container, container)
+        }
+    }
+
+    /// Whether any `DirectPlayProfile` allows media with this video codec in the given container to be played directly.
+    func canPlay(type: DlnaProfileType, videoCodec: String?, container: String?) -> Bool {
+        (directPlayProfiles ?? []).contains { profile in
+            profile.type == type
+                && profileContains(profile: profile.videoCodec, videoCodec)
+                && profileContains(profile: profile.container, container)
+        }
+    }
+
+    /// Whether any `SubtitleProfile` allows this format to be delivered via the given method.
+    func canPlay(subtitleFormat: String?, method: SubtitleDeliveryMethod) -> Bool {
+        guard let subtitleFormat = subtitleFormat?.lowercased() else { return false }
+        return (subtitleProfiles ?? []).contains { profile in
+            profile.method == method
+                && profile.format?.lowercased() == subtitleFormat
+        }
+    }
+
+    /// Parse & check membership like this is CSV as that's the format we send to the server.
+    private func profileContains(profile: String?, _ candidate: String?) -> Bool {
+        guard let profile else { return true }
+        guard let candidate = candidate?.lowercased() else { return false }
+        return profile
+            .lowercased()
+            .split(separator: ",")
+            .contains { $0.trimmingCharacters(in: .whitespaces) == candidate }
     }
 }

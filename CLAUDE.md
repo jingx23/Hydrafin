@@ -19,8 +19,7 @@ Upstream uses VLC (via the `VLCUI` SPM package and Carthage `MobileVLCKit.xcfram
 
 | File | Role |
 |------|------|
-| `Shared/Components/MPVVideoPlayer.swift` | Top-level SwiftUI view for the MPV player (equivalent to upstream's `VideoPlayer.swift` body) |
-| `Shared/Components/VideoPlayer.swift` | Empty namespace enum — upstream has a VLC-hardcoded body here |
+| `Shared/Views/VideoPlayer/VideoPlayer.swift` | Upstream file with two MPV patches: `init` uses `MPVMediaPlayerProxy()` instead of `VLCMediaPlayerProxy()`, and `onAppear`/`onDisappear` toggle `UIApplication.shared.isIdleTimerDisabled` (MPV's CAMetalLayer doesn't auto-suppress the idle timer). On merge: take upstream, re-apply both patches. (The old `Shared/Components/MPVVideoPlayer.swift` wrapper was retired in the 2026-08 merge.) |
 | `Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+MPV.swift` | Full MPV proxy implementation (`MPVMediaPlayerProxy`) |
 | `Shared/Objects/MediaPlayerManager/AudioUnitFix/AudioUnitChannelLayoutFix.h` | C header for the CoreAudio multichannel/Atmos workaround |
 | `Shared/Objects/MediaPlayerManager/AudioUnitFix/AudioUnitChannelLayoutFix.c` | mach-o symbol-rebinding implementation; called from `MPVController.setupMpv()` |
@@ -28,10 +27,30 @@ Upstream uses VLC (via the `VLCUI` SPM package and Carthage `MobileVLCKit.xcfram
 | `Shared/Objects/VideoPlayerType/VideoPlayerType.swift` | Has `.mpv` + `.native` cases — upstream has `.native` + `.swiftfin` |
 | `Shared/Objects/VideoPlayerType/VideoPlayerType+MPV.swift` | MPV direct-play, transcoding, and subtitle profiles |
 
+### Skip Credits / Next Episode (fork-only feature)
+
+Upstream has no media-segment support. These files are fork-only — preserve on every merge:
+
+| File | Role |
+|------|------|
+| `Shared/Objects/MediaSegments/*` | Segment model + providers (Jellyfin API, heuristic fallback, composite) |
+| `Shared/Views/VideoPlayer/Components/SegmentSkipButton.swift` | Floating iOS skip button (`VideoPlayer.PlaybackControls.SegmentSkipButton`) |
+| `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackControls+SegmentSkip.swift` | tvOS skip layer + skip logic extension on `VideoPlayer.PlaybackControls` |
+| `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/SkipButtonStyle.swift` | Focus-aware capsule button style for tvOS |
+
+Small fork patches inside upstream files (re-apply after taking upstream):
+- `Shared/Objects/VideoPlayerContainerState.swift` — `isSkipButtonFocused` published var (tvOS)
+- `Shared/Views/VideoPlayer/VideoPlayerContainerView/VideoPlayerContainerView.swift` — iOS: `SegmentSkipButton()` in the playback-controls ZStack; tvOS: `handleSelectEnded` forwards select presses when `isSkipButtonFocused`
+- `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift` — `showSkipButtons` default, `isSkipButtonFocused` FocusState, `currentSeconds` state, `segmentSkipLayer` in body ZStack, focus-management `onChange` handlers
+- `Shared/Views/SettingsView/VideoPlayerSettingsView.swift` — `showSkipButtons` toggle in the buttons section
+- `Shared/Objects/MediaPlayerManager/MediaPlayerItem/MediaPlayerItem.swift` + `+Build.swift` — `segments` property, populated via `mediaSegmentProvider`
+- Strings: `nextEpisode`, `skipCredits`, `showSkipButton`, `endsAt` in `Strings.swift` + `Translations/*` (plus MPV-specific `playerSwiftfinDescription`/`playerNativeDescription` texts)
+
 ### MPV-specific defaults
 
 In `Shared/Services/SwiftfinDefaults.swift`:
 - `videoPlayerType` default is `.mpv` (upstream defaults to `.swiftfin`)
+- `showSkipButtons` (fork-only key, default `true`)
 
 ### SPM dependency
 
@@ -100,8 +119,7 @@ Use this policy for each conflicted file:
 
 | File | Resolution |
 |------|-----------|
-| `Shared/Components/MPVVideoPlayer.swift` | Keep HEAD; manually apply upstream improvements (check diff for status bar API changes, error string localization, async wrapper removal) |
-| `Shared/Components/VideoPlayer.swift` | Keep HEAD (the empty namespace enum) |
+| `Shared/Views/VideoPlayer/VideoPlayer.swift` | Take upstream, then re-apply the two MPV patches: `MPVMediaPlayerProxy()` in `init`, and the `isIdleTimerDisabled` toggle in `onAppear`/`onDisappear` |
 | `Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+MPV.swift` | Keep HEAD entirely |
 | `Shared/Objects/VideoPlayerType/VideoPlayerType.swift` | Keep HEAD; upstream may add cases that don't exist — ignore them |
 | `Shared/Services/SwiftfinDefaults.swift` | Take upstream (to get new keys/style), then change `videoPlayerType` default back to `.mpv` |
@@ -120,7 +138,7 @@ git diff upstream/main...HEAD --name-only --diff-filter=D
 For each deleted file, grep for its exported symbol in the MPV-specific files:
 
 ```bash
-grep -r "DeletedSymbolName" Shared/Components/MPVVideoPlayer.swift \
+grep -r "DeletedSymbolName" Shared/Views/VideoPlayer/VideoPlayer.swift \
   Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+MPV.swift
 ```
 

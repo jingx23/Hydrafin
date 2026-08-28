@@ -7,26 +7,15 @@
 //
 
 import Defaults
+import Mantis
 import SwiftUI
 @_spi(Advanced) import SwiftUIIntrospect
 
 extension View {
 
-    func detectOrientation(_ orientation: Binding<UIDeviceOrientation>) -> some View {
-        modifier(DetectOrientation(orientation: orientation))
-    }
-
     /// - Important: This does nothing on iOS.
     func focusSection() -> some View {
         self
-    }
-
-    func navigationBarOffset(_ scrollViewOffset: Binding<CGFloat>, start: CGFloat, end: CGFloat) -> some View {
-        modifier(NavigationBarOffsetModifier(scrollViewOffset: scrollViewOffset, start: start, end: end))
-    }
-
-    func navigationBarDrawer(@ViewBuilder _ drawer: @escaping () -> some View) -> some View {
-        modifier(NavigationBarDrawerModifier(drawer: drawer))
     }
 
     @ViewBuilder
@@ -34,18 +23,15 @@ extension View {
         viewModel: FilterViewModel,
         types: [ItemFilterType]
     ) -> some View {
-        if types.isEmpty {
-            self
-        } else {
-            navigationBarDrawer {
-                NavigationBarFilterDrawer(
-                    viewModel: viewModel,
-                    types: types
-                )
-            }
-        }
+        modifier(
+            NavigationBarFilterDrawerModifier(
+                viewModel: viewModel,
+                types: types
+            )
+        )
     }
 
+    @ViewBuilder
     func navigationBarCloseButton(
         disabled: Bool = false,
         _ action: @escaping () -> Void
@@ -69,18 +55,38 @@ extension View {
             NavigationBarMenuButtonModifier(
                 isLoading: isLoading,
                 isHidden: isHidden,
-                items: items
+                menuContent: items
             )
         )
     }
 
+    @ViewBuilder
     func listRowCornerRadius(_ radius: CGFloat) -> some View {
-        introspect(.listCell, on: .iOS(.v16...)) { cell in
+        introspect(.listCell, on: .iOS(.v18...)) { cell in
             if #available(iOS 26, *) {
                 cell.cornerConfiguration = .uniformCorners(radius: .fixed(radius))
             } else {
                 cell.layer.cornerRadius = radius
             }
         }
+    }
+
+    /// Photo Picker with cropping after selection
+    func photoPicker(
+        isPresented: Binding<Bool>,
+        isSaving: Bool,
+        cropShape: Mantis.CropShapeType = .rect,
+        presetRatio: Mantis.PresetFixedRatioType = .canUseMultiplePresetFixedRatio(defaultRatio: 0),
+        onSave: @escaping (UIImage) -> Void
+    ) -> some View {
+        modifier(
+            PhotoPickerModifier(
+                isPresented: isPresented,
+                isSaving: isSaving,
+                cropShape: cropShape,
+                presetRatio: presetRatio,
+                onSave: onSave
+            )
+        )
     }
 }

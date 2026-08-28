@@ -41,7 +41,10 @@ struct MediaStreamInfoView: View {
         #if os(iOS)
             // tvOS shares this view with another so this title updates with focus and overrides that title
                 .navigationTitle(mediaStream.displayTitle ?? L10n.media)
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarTitleDisplayMode(.inline)
+                .topBarTrailing {
+                    mediaStream.shareLink
+                }
         #endif
     }
 }

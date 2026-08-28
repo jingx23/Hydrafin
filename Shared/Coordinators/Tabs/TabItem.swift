@@ -6,30 +6,28 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import JellyfinAPI
 import SwiftUI
 
 // TODO: selected icon
 @MainActor
-struct TabItem: Identifiable, Hashable {
+struct TabItem: Displayable, @MainActor Identifiable, @MainActor Hashable {
 
     let content: AnyView
+    let displayTitle: String
     let id: String
-    let title: String
     let systemImage: String
-    let labelStyle: any LabelStyle
 
     init(
         id: String,
         title: String,
         systemImage: String,
-        labelStyle: some LabelStyle = .titleAndIcon,
         @ViewBuilder content: () -> some View
     ) {
         self.content = AnyView(content())
         self.id = id
-        self.title = title
+        self.displayTitle = title
         self.systemImage = systemImage
-        self.labelStyle = labelStyle
     }
 
     func hash(into hasher: inout Hasher) {
@@ -43,13 +41,42 @@ struct TabItem: Identifiable, Hashable {
 
 extension TabItem {
 
-    static var home: TabItem {
+    static var adminDashboard: TabItem {
         TabItem(
-            id: "home",
-            title: L10n.home,
-            systemImage: "house"
+            id: "admin-dashboard",
+            title: L10n.dashboard,
+            systemImage: "server.rack"
         ) {
-            HomeView()
+            #if os(iOS)
+            AdminDashboardView()
+            #else
+            EmptyView()
+            #endif
+        }
+    }
+
+    static func contentGroup(
+        provider: some ContentGroupProvider
+    ) -> TabItem {
+        TabItem(
+            id: provider.id,
+            title: provider.displayTitle,
+            systemImage: "house.fill"
+        ) {
+            ContentGroupView(provider: provider)
+        }
+    }
+
+    static func item(id: String, displayTitle: String) -> TabItem {
+        let item = BaseItemDto(id: id, name: displayTitle)
+        let provider = ItemContentGroupProvider(item: item)
+
+        return TabItem(
+            id: id,
+            title: displayTitle,
+            systemImage: item.systemImage
+        ) {
+            ItemView(provider: provider)
         }
     }
 
@@ -63,11 +90,15 @@ extension TabItem {
             title: title,
             systemImage: systemName
         ) {
-            let viewModel = ItemLibraryViewModel(
-                filters: filters
+            PagingLibraryView(
+                library: ItemLibrary(
+                    parent: BaseItemDto(name: title),
+                    filters: filters
+                )
             )
-
-            PagingLibraryView(viewModel: viewModel)
+            .if(UIDevice.isTV) { view in
+                view.toolbar(.hidden, for: .navigationBar)
+            }
         }
     }
 
@@ -77,7 +108,20 @@ extension TabItem {
             title: L10n.media,
             systemImage: "rectangle.stack.fill"
         ) {
-            MediaView()
+            PagingLibraryView(library: UserViewLibrary())
+                .if(UIDevice.isTV) { view in
+                    view.toolbar(.hidden, for: .navigationBar)
+                }
+        }
+    }
+
+    static var liveTV: TabItem {
+        TabItem(
+            id: "live-tv",
+            title: L10n.liveTV,
+            systemImage: "play.tv"
+        ) {
+            NavigationRoute.liveTV.destination
         }
     }
 
@@ -88,6 +132,9 @@ extension TabItem {
             systemImage: "magnifyingglass"
         ) {
             SearchView()
+                .if(UIDevice.isTV) { view in
+                    view.toolbar(.hidden, for: .navigationBar)
+                }
         }
     }
 

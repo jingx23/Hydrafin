@@ -7,7 +7,7 @@
 //
 
 import Defaults
-import Factory
+import FactoryKit
 import JellyfinAPI
 import SwiftUI
 
@@ -33,20 +33,8 @@ extension DevicesView {
         // MARK: - Properties
 
         let device: DeviceInfoDto
-        let onSelect: () -> Void
-        let onDelete: (() -> Void)?
-
-        // MARK: - Initializer
-
-        init(
-            device: DeviceInfoDto,
-            onSelect: @escaping () -> Void,
-            onDelete: (() -> Void)? = nil
-        ) {
-            self.device = device
-            self.onSelect = onSelect
-            self.onDelete = onDelete
-        }
+        let action: () -> Void
+        var onDelete: (() -> Void)?
 
         // MARK: - Label Styling
 
@@ -57,6 +45,7 @@ extension DevicesView {
 
         // MARK: - Device Image View
 
+        @ViewBuilder
         private var deviceImage: some View {
             ZStack {
                 device.type.clientColor
@@ -72,12 +61,13 @@ extension DevicesView {
                 }
             }
             .posterStyle(.square)
-            .posterShadow()
+            .subtleShadow()
             .frame(width: 60, height: 60)
         }
 
         // MARK: - Row Content
 
+        @ViewBuilder
         private var rowContent: some View {
             HStack {
                 VStack(alignment: .leading) {
@@ -119,9 +109,9 @@ extension DevicesView {
                 deviceImage
             } content: {
                 rowContent
+            } action: {
+                action()
             }
-            .onSelect(perform: onSelect)
-            .isSeparatorVisible(false)
             .swipeActions {
                 if let onDelete {
                     Button(

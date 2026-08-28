@@ -7,8 +7,7 @@
 //
 
 import Defaults
-import Engine
-import Factory
+import FactoryKit
 import JellyfinAPI
 import SwiftUI
 
@@ -38,21 +37,17 @@ struct CustomizeSettingsView: View {
 
     // MARK: - Library Defaults
 
-    @Default(.Customization.Library.displayType)
-    private var libraryDisplayType
-    @Default(.Customization.Library.posterType)
-    private var libraryPosterType
-    @Default(.Customization.Library.listColumnCount)
-    private var listColumnCount
+    @Default(.Customization.Library.style)
+    private var libraryStyle
     @Default(.Customization.Library.rememberLayout)
     private var rememberLibraryLayout
     @Default(.Customization.Library.rememberSort)
     private var rememberLibrarySort
+    @Default(.Customization.Library.cinematicBackground)
+    private var cinematicBackground
 
     // MARK: - Poster Defaults
 
-    @Default(.Customization.showPosterLabels)
-    private var showPosterLabels
     @Default(.Customization.nextUpPosterType)
     private var nextUpPosterType
     @Default(.Customization.recentlyAddedPosterType)
@@ -81,17 +76,9 @@ struct CustomizeSettingsView: View {
     private var enabledTrailers
     @Default(.Customization.shouldShowMissingSeasons)
     private var shouldShowMissingSeasons
-    @Default(.Customization.shouldShowMissingEpisodes)
-    private var shouldShowMissingEpisodes
 
-    // MARK: - Item View Defaults
-
-    @Default(.Customization.itemViewType)
-    private var itemViewType
-    @Default(.Customization.CinematicItemViewType.usePrimaryImage)
-    private var cinematicItemViewTypeUsePrimaryImage
-    @Default(.Customization.Episodes.useSeriesLandscapeBackdrop)
-    private var useSeriesLandscapeBackdrop
+    @Default(.Customization.Poster.configuration)
+    private var posterConfiguration
 
     // MARK: - Item Management Defaults
 
@@ -114,6 +101,21 @@ struct CustomizeSettingsView: View {
     @Router
     private var router
 
+    @StateObject
+    private var viewModel: ServerUserAdminViewModel
+
+    init() {
+        _viewModel =
+            StateObject(wrappedValue: ServerUserAdminViewModel(user: Container.shared.currentUserSession()?.user.data ?? UserDto()))
+    }
+
+    private func updateConfiguration(_ modify: (inout UserConfiguration) -> Void) {
+        guard viewModel.user.id != nil else { return }
+        guard var configuration = viewModel.user.configuration else { return }
+        modify(&configuration)
+        viewModel.updateConfiguration(configuration)
+    }
+
     var body: some View {
         Form(systemImage: "gearshape") {
             homeSettings
@@ -132,7 +134,16 @@ struct CustomizeSettingsView: View {
 
             itemManagementSettings
         }
+        .onFirstAppear {
+            viewModel.refresh()
+        }
+        .toolbarTitleDisplayMode(.inline)
         .navigationTitle(L10n.customize)
+        .topBarTrailing {
+            if viewModel.background.is(.updating) || viewModel.background.is(.refreshing) {
+                ProgressView()
+            }
+        }
     }
 
     // MARK: - Home Settings
@@ -142,19 +153,33 @@ struct CustomizeSettingsView: View {
         Section(L10n.home) {
             Toggle(L10n.recentlyAdded, isOn: $showRecentlyAdded)
 
+            Toggle(L10n.hidePlayedInLatest, isOn: Binding(
+                get: { viewModel.user.configuration?.isHidePlayedInLatest == true },
+                set: { newValue in
+                    updateConfiguration { $0.isHidePlayedInLatest = newValue }
+                }
+            ))
+
             Toggle(L10n.nextUpRewatch, isOn: $resumeNextUp)
 
             StateAdapter(initialValue: false) { isPresented in
                 ChevronButton {
                     isPresented.wrappedValue = true
                 } label: {
-                    LabeledContent(L10n.nextUpDays) {
-                        if maxNextUp > 0 {
-                            let duration = Duration.seconds(TimeInterval(maxNextUp))
-                            return Text(duration, format: .units(allowed: [.days], width: .abbreviated))
-                        } else {
-                            return Text(L10n.disabled)
+                    LabeledContent {
+                        Group {
+                            if maxNextUp > 0 {
+                                Text(
+                                    Duration.seconds(maxNextUp),
+                                    format: .units(allowed: [.days], width: .abbreviated)
+                                )
+                            } else {
+                                Text(L10n.disabled)
+                            }
                         }
+                        .foregroundStyle(.secondary)
+                    } label: {
+                        Text(L10n.nextUpDays)
                     }
                 }
                 .alert(
@@ -207,22 +232,27 @@ struct CustomizeSettingsView: View {
     @ViewBuilder
     private var librarySettings: some View {
         Section(L10n.libraries) {
-            PlatformPicker(L10n.posters, selection: $libraryPosterType)
+            PlatformPicker(L10n.posters, selection: $libraryStyle.posterDisplayType)
 
-            PlatformPicker(L10n.defaultLayout, selection: $libraryDisplayType)
+            PlatformPicker(L10n.defaultLayout, selection: $libraryStyle.displayType)
 
-            if libraryDisplayType == .list, UIDevice.isPad || UIDevice.isTV {
-                Stepper(L10n.columns, value: $listColumnCount, in: 1 ... 3, step: 1) {
-                    LabeledContent(
-                        L10n.columns,
-                        value: listColumnCount.description
-                    )
+            if libraryStyle.displayType == .list, UIDevice.isPad || UIDevice.isTV {
+                Stepper(L10n.columns, value: $libraryStyle.listColumnCount, in: 1 ... 3, step: 1) {
+                    LabeledContent(L10n.columns) {
+                        Text(libraryStyle.listColumnCount.description)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .foregroundStyle(.primary, .secondary)
             }
 
             Toggle(L10n.rememberLayout, isOn: $rememberLibraryLayout)
 
             Toggle(L10n.rememberSorting, isOn: $rememberLibrarySort)
+
+            #if os(tvOS)
+            Toggle(L10n.cinematicBackground, isOn: $cinematicBackground)
+            #endif
         }
     }
 
@@ -231,8 +261,6 @@ struct CustomizeSettingsView: View {
     @ViewBuilder
     private var posterSettings: some View {
         Section(L10n.posters) {
-            Toggle(L10n.showPosterLabels, isOn: $showPosterLabels)
-
             ChevronButton(L10n.indicators) {
                 router.route(to: .indicatorSettings)
             }
@@ -262,7 +290,12 @@ struct CustomizeSettingsView: View {
 
             Toggle(L10n.showMissingSeasons, isOn: $shouldShowMissingSeasons)
 
-            Toggle(L10n.showMissingEpisodes, isOn: $shouldShowMissingEpisodes)
+            Toggle(L10n.showMissingEpisodes, isOn: Binding(
+                get: { viewModel.user.configuration?.isDisplayMissingEpisodes == true },
+                set: { newValue in
+                    updateConfiguration { $0.isDisplayMissingEpisodes = newValue }
+                }
+            ))
         }
     }
 
@@ -272,19 +305,9 @@ struct CustomizeSettingsView: View {
     private var itemViewSettings: some View {
         if UIDevice.isPhone {
             Section {
-                PlatformPicker(L10n.type, selection: $itemViewType)
-
-                if itemViewType == .cinematic {
-                    Toggle(L10n.usePrimaryImage, isOn: $cinematicItemViewTypeUsePrimaryImage)
-                }
-
-                Toggle(L10n.useSeriesImageForEpisodes, isOn: $useSeriesLandscapeBackdrop)
+                Toggle(L10n.useSeriesImageForEpisodes, isOn: $posterConfiguration.useSeriesLandscapeBackdrop)
             } header: {
                 Text(L10n.itemView)
-            } footer: {
-                if itemViewType == .cinematic {
-                    Text(L10n.usePrimaryImageDescription)
-                }
             }
         }
     }

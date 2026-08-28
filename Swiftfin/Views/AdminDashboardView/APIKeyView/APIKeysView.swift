@@ -80,7 +80,9 @@ struct APIKeysView: View {
                     showCreateAPIAlert = true
                     UIDevice.impact(.light)
                 }
-                .buttonStyle(.toolbarPill)
+                .backport
+                .buttonStyle(.glassProminent)
+                .controlSize(.small)
             }
         }
         .alert(
@@ -88,7 +90,9 @@ struct APIKeysView: View {
             isPresented: $showCreateAPIAlert
         ) {
             TextField(L10n.applicationName, text: $appName)
+
             Button(L10n.cancel, role: .cancel) {}
+
             Button(L10n.save) {
                 viewModel.create(name: appName)
                 appName = ""

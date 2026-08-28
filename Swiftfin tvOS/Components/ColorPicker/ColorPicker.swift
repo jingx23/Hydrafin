@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Engine
 import SwiftUI
 
 struct ColorPicker: View {
@@ -14,34 +13,37 @@ struct ColorPicker: View {
     @State
     private var isPresented = false
 
+    private let title: String
     private let selection: Binding<Color>
     private let supportsOpacity: Bool
-    private let title: String
 
     init(_ title: String, selection: Binding<Color>, supportsOpacity: Bool = false) {
+        self.title = title
         self.selection = selection
         self.supportsOpacity = supportsOpacity
-        self.title = title
     }
 
     var body: some View {
         ChevronButton {
             isPresented = true
         } label: {
-            LabeledContent(title) {
+            LabeledContent {
                 Image(systemName: "circle.fill")
                     .foregroundStyle(selection.wrappedValue)
+            } label: {
+                Text(title)
             }
         }
-        ._alert(
-            title,
-            isPresented: $isPresented
-        ) {
+        .sheet(isPresented: $isPresented) {
             StateAdapter(initialValue: selection.wrappedValue) { color in
-                Self._Alert(value: color)
-                    .onDisappear {
-                        selection.wrappedValue = color.wrappedValue
-                    }
+                Self.Sheet(
+                    title: title,
+                    value: color,
+                    supportsOpacity: supportsOpacity
+                )
+                .onDisappear {
+                    selection.wrappedValue = color.wrappedValue
+                }
             }
         }
     }

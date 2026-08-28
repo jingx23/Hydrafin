@@ -14,8 +14,6 @@ extension APIKeysView {
     struct APIKeysRow: View {
 
         @State
-        private var showCopiedAlert = false
-        @State
         private var showDeleteConfirmation = false
         @State
         private var showReplaceConfirmation = false
@@ -24,6 +22,7 @@ extension APIKeysView {
         let deleteAction: () -> Void
         let replaceAction: () -> Void
 
+        @ViewBuilder
         private var rowContent: some View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(apiKey.appName ?? L10n.unknown)
@@ -47,21 +46,10 @@ extension APIKeysView {
         }
 
         var body: some View {
-            Button {
-                UIPasteboard.general.string = apiKey.accessToken
-                showCopiedAlert = true
-            } label: {
+            apiKey.shareLink {
                 rowContent
             }
             .foregroundStyle(.primary, .secondary)
-            .alert(
-                L10n.apiKeyCopied,
-                isPresented: $showCopiedAlert
-            ) {
-                Button(L10n.ok, role: .cancel) {}
-            } message: {
-                Text(L10n.apiKeyCopiedMessage)
-            }
             .confirmationDialog(
                 L10n.delete,
                 isPresented: $showDeleteConfirmation,

@@ -12,21 +12,20 @@ import Transmission
 
 // TODO: have full screen zoom presentation zoom from/to center
 //       - probably need to make mock view with matching ids
-// TODO: have presentation dismissal be through preference keys
-//       - issue with all of the VC/view wrapping
 
-extension EnvironmentValues {
+struct PresentationControllerShouldDismissPreferenceKey: PreferenceKey {
 
-    @Entry
-    var presentationControllerShouldDismiss: Binding<Bool> = .constant(true)
+    static var defaultValue: Bool = true
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = nextValue()
+    }
 }
 
 struct NavigationInjectionView: View {
 
     @StateObject
     private var coordinator: NavigationCoordinator
-    @EnvironmentObject
-    private var rootCoordinator: RootCoordinator
 
     @State
     private var isPresentationInteractive: Bool = true
@@ -48,77 +47,65 @@ struct NavigationInjectionView: View {
                     route.destination
                 }
         }
+        .trackingFrame(for: .navigationStack)
         .environment(
             \.router,
             .init(
-                navigationCoordinator: coordinator,
-                rootCoordinator: rootCoordinator
+                navigationCoordinator: coordinator
             )
         )
+        .environmentObject(coordinator)
         #if os(tvOS)
-        // TODO: Workaround for sheet presentation issue on tvOS
-        // https://developer.apple.com/documentation/tvos-release-notes/tvos-26_1-release-notes
-        // Remove this tvOS section when resolved
-        .fullScreenCover(
+            .fullScreenCover(
                 item: $coordinator.presentedSheet
             ) {
                 coordinator.presentedSheet = nil
-            } content: { route in
-                let newCoordinator = NavigationCoordinator()
-
-                NavigationInjectionView(coordinator: newCoordinator) {
-                    route.destination
+            } content: { presentedRoute in
+                NavigationInjectionView(coordinator: presentedRoute.coordinator) {
+                    presentedRoute.route.destination
                 }
-                .environmentObject(rootCoordinator)
                 .background(.regularMaterial)
             }
-        #else // <- Start: Use this for both OS when fixed
+            .fullScreenCover(
+                item: $coordinator.presentedFullScreen
+            ) { presentedRoute in
+                NavigationInjectionView(coordinator: presentedRoute.coordinator) {
+                    presentedRoute.route.destination
+                }
+            }
+        #else
             .sheet(
                 item: $coordinator.presentedSheet
             ) {
                 coordinator.presentedSheet = nil
-            } content: { route in
-                let newCoordinator = NavigationCoordinator()
-
-                NavigationInjectionView(coordinator: newCoordinator) {
-                    route.destination
+            } content: { presentedRoute in
+                NavigationInjectionView(coordinator: presentedRoute.coordinator) {
+                    presentedRoute.route.destination
                 }
-                .environmentObject(rootCoordinator)
             }
-        #endif // <- End
-        #if os(tvOS)
-        .fullScreenCover(
-            item: $coordinator.presentedFullScreen
-        ) { route in
-            let newCoordinator = NavigationCoordinator()
-
-            NavigationInjectionView(coordinator: newCoordinator) {
-                route.destination
-            }
-            .environmentObject(rootCoordinator)
-        }
-        #else
-        .presentation(
+            .presentation(
                 $coordinator.presentedFullScreen,
                 transition: .zoomIfAvailable(
-                    options: .init(
+                    .init(
                         dimmingVisualEffect: .systemThickMaterialDark,
-                        options: .init(
-                            isInteractive: isPresentationInteractive
-                        )
+                        prefersScalePresentingView: false
+                    ),
+                    options: .init(
+                        isInteractive: isPresentationInteractive,
+                        preferredPresentationSafeAreaInsets: .zero,
                     ),
                     otherwise: .slide(.init(edge: .bottom), options: .init(isInteractive: isPresentationInteractive))
                 )
-            ) { routeBinding, _ in
+            ) { presentedRouteBinding, _ in
                 let vc = UIPreferencesHostingController {
-                    NavigationInjectionView(coordinator: .init()) {
-                        routeBinding.wrappedValue.destination
-                            .environment(\.presentationControllerShouldDismiss, $isPresentationInteractive)
+                    NavigationInjectionView(coordinator: presentedRouteBinding.wrappedValue.coordinator) {
+                        presentedRouteBinding.wrappedValue.route.destination
+                            .onPreferenceChange(PresentationControllerShouldDismissPreferenceKey.self) { newValue in
+                                isPresentationInteractive = newValue
+                            }
                     }
-                    .environmentObject(rootCoordinator)
                 }
 
-                // TODO: presentation options for customizing background color, dimming effect, etc.
                 vc.view.backgroundColor = .black
 
                 return vc

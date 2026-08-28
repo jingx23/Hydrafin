@@ -6,75 +6,20 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import CoreStore
-import Defaults
-import Factory
-import Logging
-import Nuke
 import PreferencesView
-import PulseLogHandler
 import SwiftUI
+import UIKit
 
 @main
 struct SwiftfinApp: App {
 
-    @UIApplicationDelegateAdaptor(AppDelegate.self)
-    var appDelegate
-
-    @StateObject
-    private var valueObservation = ValueObservation()
-
     init() {
-
-        #if DEBUG
-        SwizzleDefaults.set(Defaults[.isLiquidGlassEnabled], for: "com.apple.SwiftUI.IgnoreSolariumOptOut")
-        #endif
-
-        // Logging
-        LoggingSystem.bootstrap { label in
-
-            // TODO: have setting for log level
-            //       - default info, boolean to go down to trace
-            let handlers: [any LogHandler] = [PersistentLogHandler(label: label)]
-            #if DEBUG
-                .appending(SwiftfinConsoleHandler())
-            #endif
-
-            var multiplexHandler = MultiplexLogHandler(handlers)
-            multiplexHandler.logLevel = .trace
-            return multiplexHandler
-        }
-
-        // CoreStore
-
-        CoreStoreDefaults.dataStack = SwiftfinStore.dataStack
-        CoreStoreDefaults.logger = SwiftfinCorestoreLogger()
-
-        // Nuke
-
-        ImageCache.shared.costLimit = 1024 * 1024 * 200 // 200 MB
-        ImageCache.shared.ttl = 300 // 5 min
-
-        ImageDecoderRegistry.shared.register { context in
-            guard let mimeType = context.urlResponse?.mimeType else { return nil }
-            return mimeType.contains("svg") ? ImageDecoders.Empty() : nil
-        }
-
-        ImagePipeline.shared = .Swiftfin.posters
-
-        // UIKit
+        Self.configure()
 
         UIScrollView.appearance().keyboardDismissMode = .onDrag
 
-        // Sometimes the tab bar won't appear properly on push, always have material background
+        // Sometimes the tab bar won't appear properly on push, always have material background.
         UITabBar.appearance().scrollEdgeAppearance = UITabBarAppearance(idiom: .unspecified)
-
-        // Swiftfin
-
-        // don't keep last user id
-        if Defaults[.signOutOnClose] {
-            Defaults[.lastSignedInUserID] = .signedOut
-        }
 
         SwiftfinSpotlight().addSwiftfinToSpotlight()
     }
@@ -83,33 +28,20 @@ struct SwiftfinApp: App {
         WindowGroup {
             OverlayToastView {
                 PreferencesView {
-                    RootView()
-                        .supportedOrientations(UIDevice.isPad ? .allButUpsideDown : .portrait)
+                    WithUserAuthentication {
+                        RootView()
+                            .supportedOrientations(UIDevice.isPad ? .allButUpsideDown : .portrait)
+                    }
                 }
             }
             .ignoresSafeArea()
-            .onAppDidEnterBackground {
-                Defaults[.backgroundTimeStamp] = Date.now
-            }
-            .onAppWillEnterForeground {
-
-                // TODO: needs to check if any background playback is happening
-                //       - atow, background video playback isn't officially supported
-                let backgroundedInterval = Date.now.timeIntervalSince(Defaults[.backgroundTimeStamp])
-
-                if Defaults[.signOutOnBackground], backgroundedInterval > Defaults[.backgroundSignOutInterval] {
-                    Defaults[.lastSignedInUserID] = .signedOut
-                    Container.shared.currentUserSession.reset()
-                    Notifications[.didSignOut].post()
-                }
-            }
         }
     }
 }
 
 extension UINavigationController {
 
-    /// Remove back button text
+    // Remove back button text
     override open func viewWillLayoutSubviews() {
         navigationBar.topItem?.backButtonDisplayMode = .minimal
     }

@@ -17,25 +17,27 @@ struct HourMinutePicker: View {
     @State
     private var isPresented = false
 
-    private let title: String
-    private let interval: Binding<TimeInterval>
+    let title: String
+    let interval: Binding<TimeInterval>
 
-    init(_ title: String, interval: Binding<TimeInterval>) {
-        self.title = title
-        self.interval = interval
-    }
-
-    @ViewBuilder
     var body: some View {
         ChevronButton(
             title,
-            subtitle: Text(Duration.seconds(interval.wrappedValue), format: .hourMinuteAbbreviated)
+            content: Text(Duration.seconds(interval.wrappedValue), format: .hourMinuteAbbreviated)
         ) {
             isPresented.toggle()
         }
         #if os(tvOS)
-        ._alert(title, isPresented: $isPresented) {
-            _HourMinutePickerView(interval: interval)
+        .sheet(isPresented: $isPresented) {
+            VStack(spacing: 8) {
+                Text(title.localizedCapitalized)
+                    .font(.title3)
+                    .edgePadding(.bottom)
+
+                _HourMinutePickerView(interval: interval)
+                    .frame(width: 500, height: 400)
+            }
+            .edgePadding()
         }
         #endif
 
@@ -51,7 +53,7 @@ struct HourMinutePicker: View {
 
 #if os(iOS)
 
-private struct _HourMinutePickerView: UIViewRepresentable {
+private struct _HourMinutePickerView: PlatformViewRepresentable {
 
     let interval: Binding<TimeInterval>
 
@@ -100,7 +102,7 @@ private struct _HourMinutePickerView: UIViewRepresentable {
 
 #if os(tvOS)
 
-private struct _HourMinutePickerView: UIViewRepresentable {
+private struct _HourMinutePickerView: PlatformViewRepresentable {
 
     let interval: Binding<TimeInterval>
 

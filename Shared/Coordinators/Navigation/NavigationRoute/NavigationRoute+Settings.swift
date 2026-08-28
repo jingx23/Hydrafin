@@ -69,7 +69,7 @@ extension NavigationRoute {
         NavigationRoute(
             id: "customizeSettingsView"
         ) {
-            CustomizeSettingsView()
+            CustomizeViewsSettings()
         }
     }
 
@@ -114,10 +114,37 @@ extension NavigationRoute {
         }
     }
 
-    static func editServer(server: ServerState, isEditing: Bool = false) -> NavigationRoute {
+    static func editLocalServer(server: ServerState, isEditing: Bool = false) -> NavigationRoute {
         NavigationRoute(id: "editServer") {
-            EditServerView(server: server)
-                .isEditing(isEditing)
+            EditLocalServerView(
+                server: server,
+                isDeletePresented: isEditing
+            )
+        }
+    }
+
+    @MainActor
+    static func serverConnections(viewModel: ServerConnectionViewModel) -> NavigationRoute {
+        NavigationRoute(
+            id: "serverConnections-\(viewModel.server.id)"
+        ) {
+            ServerConnectionView(viewModel: viewModel)
+        }
+    }
+
+    @MainActor
+    static func editServerConnection(
+        viewModel: ServerConnectionViewModel,
+        connection: ServerConnection
+    ) -> NavigationRoute {
+        NavigationRoute(
+            id: "serverConnection-\(viewModel.server.id)-\(connection.id)",
+            style: .sheet
+        ) {
+            EditServerConnectionView(
+                viewModel: viewModel,
+                connection: connection
+            )
         }
     }
 
@@ -145,6 +172,24 @@ extension NavigationRoute {
     }
     #endif
 
+    static let itemSettings = NavigationRoute(
+        id: "itemSettings"
+    ) {
+        CustomizeViewsSettings.ItemSection()
+    }
+
+    static let librarySettings = NavigationRoute(
+        id: "librarySettings"
+    ) {
+        CustomizeViewsSettings.LibrarySection()
+    }
+
+    static let posterSettings = NavigationRoute(
+        id: "posterSettings"
+    ) {
+        CustomizeViewsSettings.PosterSection()
+    }
+
     static var indicatorSettings: NavigationRoute {
         NavigationRoute(
             id: "indicatorSettings"
@@ -171,13 +216,15 @@ extension NavigationRoute {
         NavigationRoute(
             id: "localUserSecurity"
         ) {
-            LocalUserSecurityView()
+            WithUserAuthentication {
+                LocalUserSecurityView()
+            }
         }
     }
 
-    static func localUserSettings(viewModel: SettingsViewModel) -> NavigationRoute {
+    static func localUserSettings(user: UserDto) -> NavigationRoute {
         NavigationRoute(id: "localUserSettings") {
-            LocalUserSettingsView(viewModel: viewModel)
+            LocalUserSettingsView(user: user)
         }
     }
 
@@ -188,16 +235,6 @@ extension NavigationRoute {
             ConsoleView()
         }
     }
-
-    #if os(iOS)
-    static var nativePlayerSettings: NavigationRoute {
-        NavigationRoute(
-            id: "nativePlayerSettings"
-        ) {
-            NativeVideoPlayerSettingsView()
-        }
-    }
-    #endif
 
     static var playbackQualitySettings: NavigationRoute {
         NavigationRoute(
@@ -217,12 +254,6 @@ extension NavigationRoute {
         }
     }
     #endif
-
-    static func serverConnection(server: ServerState) -> NavigationRoute {
-        NavigationRoute(id: "serverConnection") {
-            EditServerView(server: server)
-        }
-    }
 
     static var settings: NavigationRoute {
         NavigationRoute(

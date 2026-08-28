@@ -6,36 +6,22 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import JellyfinAPI
 import SwiftUI
 
 struct ServerUserLiveTVAccessView: View {
 
-    // MARK: - Current Date
-
     @CurrentDate
     private var currentDate: Date
-
-    // MARK: - Observed & Environment Objects
-
-    @Router
-    private var router
 
     @ObservedObject
     private var viewModel: ServerUserAdminViewModel
 
-    // MARK: - Policy Variable
+    @Router
+    private var router
 
     @State
     private var tempPolicy: UserPolicy
-
-    // MARK: - Error State
-
-    @State
-    private var error: Error?
-
-    // MARK: - Initializer
 
     init(viewModel: ServerUserAdminViewModel) {
         self.viewModel = viewModel
@@ -47,43 +33,7 @@ struct ServerUserLiveTVAccessView: View {
         self.tempPolicy = policy
     }
 
-    // MARK: - Body
-
     var body: some View {
-        contentView
-            .navigationTitle(L10n.liveTVAccessCapitalized)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarCloseButton {
-                router.dismiss()
-            }
-            .topBarTrailing {
-                if viewModel.backgroundStates.contains(.updating) {
-                    ProgressView()
-                }
-                Button(L10n.save) {
-                    if tempPolicy != viewModel.user.policy {
-                        viewModel.send(.updatePolicy(tempPolicy))
-                    }
-                }
-                .buttonStyle(.toolbarPill)
-                .disabled(viewModel.user.policy == tempPolicy)
-            }
-            .onReceive(viewModel.events) { event in
-                switch event {
-                case let .error(eventError):
-                    UIDevice.feedback(.error)
-                    error = eventError
-                case .updated:
-                    UIDevice.feedback(.success)
-                    router.dismiss()
-                }
-            }
-            .errorMessage($error)
-    }
-
-    // MARK: - Content View
-
-    var contentView: some View {
         List {
             Section(L10n.access) {
                 Toggle(
@@ -96,5 +46,43 @@ struct ServerUserLiveTVAccessView: View {
                 )
             }
         }
+        .toolbarTitleDisplayMode(.inline)
+        .navigationTitle(L10n.liveTVAccessCapitalized)
+        .navigationBarCloseButton {
+            router.dismiss()
+        }
+        .refreshable {
+            viewModel.refresh()
+        }
+        .topBarTrailing {
+            if viewModel.background.is(.updating) {
+                ProgressView()
+            }
+            let saveAction: () -> Void = {
+                if tempPolicy != viewModel.user.policy {
+                    viewModel.updatePolicy(tempPolicy)
+                }
+            }
+
+            Group {
+                if #available(iOS 26, *) {
+                    Button(L10n.save, role: .confirm, action: saveAction)
+                } else {
+                    Button(L10n.save, action: saveAction)
+                        .backport
+                        .buttonStyle(.glassProminent)
+                        .controlSize(.small)
+                }
+            }
+            .disabled(viewModel.user.policy == tempPolicy)
+        }
+        .onReceive(viewModel.events) { event in
+            switch event {
+            case .updated:
+                UIDevice.feedback(.success)
+                router.dismiss()
+            }
+        }
+        .errorMessage($viewModel.error)
     }
 }

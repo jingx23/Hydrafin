@@ -22,24 +22,29 @@ struct AddServerUserAccessTagsView: View {
     @State
     private var tempPolicy: UserPolicy
     @State
-    private var tempTag: String = ""
+    private var input: ItemComponentEditorInput = .init(
+        id: nil,
+        name: "",
+        personKind: .unknown,
+        personRole: ""
+    )
 
     @StateObject
-    private var tagViewModel: TagEditorViewModel
+    private var tagViewModel: ItemComponentEditorViewModel<TagComponentEditor>
 
     private var alreadyOnItem: Bool {
         let blocked = tempPolicy.blockedTags ?? []
         let allowed = tempPolicy.allowedTags ?? []
-        return blocked.contains { $0.caseInsensitiveCompare(tempTag) == .orderedSame }
-            || allowed.contains { $0.caseInsensitiveCompare(tempTag) == .orderedSame }
+        return blocked.contains { $0.caseInsensitiveCompare(input.name) == .orderedSame }
+            || allowed.contains { $0.caseInsensitiveCompare(input.name) == .orderedSame }
     }
 
     private var existsOnServer: Bool {
-        tempTag.isNotEmpty && tagViewModel.matchExists(named: tempTag)
+        input.name.isNotEmpty && tagViewModel.editor.matchExists(named: input.name, in: tagViewModel.matches)
     }
 
     private var isValid: Bool {
-        tempTag.isNotEmpty && !alreadyOnItem
+        input.name.isNotEmpty && !alreadyOnItem
     }
 
     // MARK: - Initializer
@@ -50,7 +55,10 @@ struct AddServerUserAccessTagsView: View {
             authenticationProviderID: "",
             passwordResetProviderID: ""
         )
-        self._tagViewModel = StateObject(wrappedValue: TagEditorViewModel(item: .init()))
+        self._tagViewModel = StateObject(wrappedValue: ItemComponentEditorViewModel(
+            editor: TagComponentEditor(),
+            item: .init()
+        ))
     }
 
     // MARK: - Body
@@ -75,59 +83,71 @@ struct AddServerUserAccessTagsView: View {
             }
 
             ItemElementSearchView(
-                name: $tempTag,
+                input: $input,
+                editor: tagViewModel.editor,
                 population: tagViewModel.matches,
                 isSearching: tagViewModel.background.states.contains(.searching),
                 alreadyOnItem: alreadyOnItem,
                 existsOnServer: existsOnServer
             )
         }
+        .toolbarTitleDisplayMode(.inline)
         .navigationTitle(L10n.addAccessTag.localizedCapitalized)
-        .navigationBarTitleDisplayMode(.inline)
         .navigationBarCloseButton {
             router.dismiss()
         }
         .topBarTrailing {
-            if viewModel.backgroundStates.contains(.refreshing) ||
+            if viewModel.background.is(.refreshing) ||
+                viewModel.background.is(.updating) ||
                 tagViewModel.background.states.contains(.searching)
             {
                 ProgressView()
             }
 
-            if viewModel.backgroundStates.contains(.updating) {
-                Button(L10n.cancel) {
-                    viewModel.send(.cancel)
+            if viewModel.background.states.contains(.updating) {
+                Button(L10n.cancel, role: .cancel) {
+                    viewModel.cancel()
                 }
-                .buttonStyle(.toolbarPill(.red))
+                .foregroundStyle(.primary, .secondary)
+                .backport
+                .buttonStyle(.glass)
+                .controlSize(.small)
             } else {
-                Button(L10n.save) {
+                let saveAction: () -> Void = {
                     if access {
                         tempPolicy.allowedTags = tempPolicy.allowedTags
-                            .appendedOrInit(tempTag)
+                            .appendedOrInit(input.name)
                     } else {
                         tempPolicy.blockedTags = tempPolicy.blockedTags
-                            .appendedOrInit(tempTag)
+                            .appendedOrInit(input.name)
                     }
 
-                    viewModel.send(.updatePolicy(tempPolicy))
+                    viewModel.updatePolicy(tempPolicy)
                 }
-                .buttonStyle(.toolbarPill)
+
+                Group {
+                    if #available(iOS 26, *) {
+                        Button(L10n.save, role: .confirm, action: saveAction)
+                    } else {
+                        Button(L10n.save, action: saveAction)
+                            .backport
+                            .buttonStyle(.glassProminent)
+                            .controlSize(.small)
+                    }
+                }
                 .disabled(!isValid)
             }
         }
-        .onChange(of: tempTag) { newTag in
-            tagViewModel.search(newTag)
+        .onChange(of: input.name) {
+            tagViewModel.search(input.name)
         }
         .onReceive(viewModel.events) { event in
             switch event {
-            case .error:
-                UIDevice.feedback(.error)
             case .updated:
                 UIDevice.feedback(.success)
                 router.dismiss()
             }
         }
-        // TODO: Add when moved to @Stateful
-        // .errorMessage($viewModel.error)
+        .errorMessage($viewModel.error)
     }
 }

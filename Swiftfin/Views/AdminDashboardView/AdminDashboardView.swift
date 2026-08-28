@@ -45,6 +45,10 @@ struct AdminDashboardView: View {
                     router.route(to: .apiKeys)
                 }
 
+                ChevronButton(L10n.backups) {
+                    router.route(to: .backups)
+                }
+
                 ChevronButton(L10n.logs) {
                     router.route(to: .serverLogs)
                 }
@@ -55,6 +59,6 @@ struct AdminDashboardView: View {
             }
         }
         .navigationTitle(L10n.dashboard)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbarTitleDisplayMode(.inline)
     }
 }

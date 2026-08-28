@@ -7,7 +7,7 @@
 //
 
 import Defaults
-import Factory
+import FactoryKit
 import JellyfinAPI
 import SwiftUI
 
@@ -33,16 +33,16 @@ extension ServerUsersView {
         @CurrentDate
         private var currentDate: Date
 
-        private let user: UserDto
+        let user: UserDto
 
         // MARK: - Actions
 
-        private let onSelect: () -> Void
-        private let onDelete: () -> Void
+        let action: () -> Void
+        let onDelete: () -> Void
 
         // MARK: - User Status Mapping
 
-        private var userActive: Bool {
+        private var isUserActive: Bool {
             if let isDisabled = user.policy?.isDisabled {
                 !isDisabled
             } else {
@@ -50,28 +50,17 @@ extension ServerUsersView {
             }
         }
 
-        // MARK: - Initializer
-
-        init(
-            user: UserDto,
-            onSelect: @escaping () -> Void,
-            onDelete: @escaping () -> Void
-        ) {
-            self.user = user
-            self.onSelect = onSelect
-            self.onDelete = onDelete
-        }
-
         // MARK: - Label Styling
 
         private var labelForegroundStyle: some ShapeStyle {
-            guard isEditing else { return userActive ? .primary : .secondary }
+            guard isEditing else { return isUserActive ? .primary : .secondary }
 
             return isSelected ? .primary : .secondary
         }
 
         // MARK: - User Image View
 
+        @ViewBuilder
         private var userImage: some View {
             ZStack {
                 UserProfileImage(
@@ -81,7 +70,7 @@ extension ServerUsersView {
                         maxWidth: 60
                     )
                 )
-                .environment(\.isEnabled, userActive)
+                .environment(\.isEnabled, isUserActive)
                 .isEditing(isEditing)
                 .isSelected(isSelected)
             }
@@ -90,6 +79,7 @@ extension ServerUsersView {
 
         // MARK: - Row Content
 
+        @ViewBuilder
         private var rowContent: some View {
             HStack {
                 VStack(alignment: .leading) {
@@ -133,9 +123,9 @@ extension ServerUsersView {
                 userImage
             } content: {
                 rowContent
+            } action: {
+                action()
             }
-            .onSelect(perform: onSelect)
-            .isSeparatorVisible(false)
             .swipeActions {
                 Button(
                     L10n.delete,

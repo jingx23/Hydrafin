@@ -61,7 +61,6 @@ struct IdentifyItemResultView: View {
                 }
             }
         }
-        .backport
         .toolbarTitleDisplayMode(.inline)
         .navigationTitle(L10n.identify)
         .navigationBarCloseButton {
@@ -72,10 +71,20 @@ struct IdentifyItemResultView: View {
                 ProgressView()
             }
 
-            Button(L10n.save) {
+            let saveAction: () -> Void = {
                 viewModel.update(result)
             }
-            .buttonStyle(.toolbarPill)
+
+            Group {
+                if #available(iOS 26, *) {
+                    Button(L10n.save, role: .confirm, action: saveAction)
+                } else {
+                    Button(L10n.save, action: saveAction)
+                        .backport
+                        .buttonStyle(.glassProminent)
+                        .controlSize(.small)
+                }
+            }
             .disabled(viewModel.background.is(.updating))
         }
         .onReceive(viewModel.events) { event in

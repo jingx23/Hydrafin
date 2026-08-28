@@ -13,7 +13,7 @@ struct LocalUserAccessPolicyView: View {
     @Binding
     private var pinHint: String
     @Binding
-    private var accessPolicy: UserAccessPolicy
+    private var accessPolicy: LocalUserAccessPolicy
 
     @Router
     private var router
@@ -23,11 +23,11 @@ struct LocalUserAccessPolicyView: View {
     @State
     private var updatePinHint: String
     @State
-    private var updateSignInPolicy: UserAccessPolicy
+    private var updateSignInPolicy: LocalUserAccessPolicy
 
     init(
         pinHint: Binding<String>,
-        accessPolicy: Binding<UserAccessPolicy>
+        accessPolicy: Binding<LocalUserAccessPolicy>
     ) {
         self._pinHint = pinHint
         self._accessPolicy = accessPolicy
@@ -49,21 +49,21 @@ struct LocalUserAccessPolicyView: View {
                     BulletedList {
 
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(UserAccessPolicy.requireDeviceAuthentication.displayTitle)
+                            Text(LocalUserAccessPolicy.requireDeviceAuthentication.displayTitle)
                                 .fontWeight(.semibold)
 
                             Text(L10n.requireDeviceAuthDescription)
                         }
 
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(UserAccessPolicy.requirePin.displayTitle)
+                            Text(LocalUserAccessPolicy.requirePin.displayTitle)
                                 .fontWeight(.semibold)
 
                             Text(L10n.requirePinDescription)
                         }
 
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(UserAccessPolicy.none.displayTitle)
+                            Text(LocalUserAccessPolicy.none.displayTitle)
                                 .fontWeight(.semibold)
 
                             Text(L10n.saveUserWithoutAuthDescription)
@@ -85,20 +85,20 @@ struct LocalUserAccessPolicyView: View {
         }
         .animation(.linear, value: accessPolicy)
         .navigationTitle(L10n.security)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbarTitleDisplayMode(.inline)
         .navigationBarCloseButton {
             router.dismiss()
         }
-        .onChange(of: updatePinHint) { newValue in
-            let truncated = String(newValue.prefix(120))
+        .onChange(of: updatePinHint) {
+            let truncated = String(updatePinHint.prefix(120))
             updatePinHint = truncated
             pinHint = truncated
         }
-        .onChange(of: updatePinHint) { newValue in
-            pinHint = newValue
+        .onChange(of: updatePinHint) {
+            pinHint = updatePinHint
         }
-        .onChange(of: updateSignInPolicy) { newValue in
-            accessPolicy = newValue
+        .onChange(of: updateSignInPolicy) {
+            accessPolicy = updateSignInPolicy
         }
         .trackingSize($listSize)
     }

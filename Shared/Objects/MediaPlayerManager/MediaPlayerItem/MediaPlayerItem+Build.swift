@@ -7,7 +7,7 @@
 //
 
 import Defaults
-import Factory
+import FactoryKit
 import Foundation
 import JellyfinAPI
 import Logging
@@ -21,6 +21,8 @@ extension MediaPlayerItem {
     static func build(
         for initialItem: BaseItemDto,
         mediaSource _initialMediaSource: MediaSourceInfo? = nil,
+        audioStreamIndex: Int? = nil,
+        subtitleStreamIndex: Int? = nil,
         videoPlayerType: VideoPlayerType = Defaults[.VideoPlayer.videoPlayerType],
         requestedBitrate: PlaybackBitrate = Defaults[.VideoPlayer.Playback.appMaximumBitrate],
         compatibilityMode: PlaybackCompatibility = Defaults[.VideoPlayer.Playback.compatibilityMode],
@@ -61,7 +63,7 @@ extension MediaPlayerItem {
             throw ErrorMessage(L10n.unknownError)
         }
 
-        let maxBitrate = try await requestedBitrate.getMaxBitrate()
+        let maxBitrate = try await MediaPlayerManager.getMaxBitrate(for: requestedBitrate)
 
         let deviceProfile = DeviceProfile.build(
             for: videoPlayerType,
@@ -75,6 +77,8 @@ extension MediaPlayerItem {
         playbackInfo.liveStreamID = initialMediaSource.liveStreamID
         playbackInfo.maxStreamingBitrate = maxBitrate
         playbackInfo.userID = userSession.user.id
+        playbackInfo.audioStreamIndex = audioStreamIndex
+        playbackInfo.subtitleStreamIndex = subtitleStreamIndex
 
         if !item.isLiveStream {
             playbackInfo.mediaSourceID = initialMediaSource.id
@@ -118,6 +122,8 @@ extension MediaPlayerItem {
         guard let mediaSource else {
             throw ErrorMessage("Unable to find media source for item")
         }
+
+        item.runTimeTicks = mediaSource.runTimeTicks ?? item.runTimeTicks
 
         guard let playSessionID = response.value.playSessionID else {
             throw ErrorMessage("No associated play session ID")
@@ -172,6 +178,9 @@ extension MediaPlayerItem {
             playSessionID: playSessionID,
             url: playbackURL,
             requestedBitrate: requestedBitrate,
+            deviceProfile: deviceProfile,
+            initialAudioStreamIndex: audioStreamIndex,
+            initialSubtitleStreamIndex: subtitleStreamIndex,
             previewImageProvider: previewImageProvider,
             thumbnailProvider: item.getNowPlayingImage,
             segments: segments
@@ -192,12 +201,14 @@ extension MediaPlayerItem {
             throw ErrorMessage("No item ID while building online media player item!")
         }
 
-        if let transcodingURL = mediaSource.transcodingURL {
+        if let transcodingPath = mediaSource.transcodingURL {
             logger.trace("Using transcoding URL for item \(itemID)")
 
-            guard let fullTranscodeURL = userSession.client.fullURL(with: transcodingURL)
-            else { throw ErrorMessage("Unable to make transcode URL") }
-            return fullTranscodeURL
+            guard let url = userSession.client.url(path: transcodingPath) else {
+                throw ErrorMessage("Unable to make transcoding URL")
+            }
+
+            return url
         }
 
         if item.mediaType == .video, !item.isLiveStream {
@@ -206,9 +217,9 @@ extension MediaPlayerItem {
 
             let videoStreamParameters = Paths.GetVideoStreamParameters(
                 isStatic: true,
-                tag: item.etag,
+                tag: mediaSource.eTag ?? item.etag,
                 playSessionID: playSessionID,
-                mediaSourceID: itemID
+                mediaSourceID: mediaSource.id ?? itemID
             )
 
             let videoStreamRequest = Paths.getVideoStream(
@@ -216,7 +227,7 @@ extension MediaPlayerItem {
                 parameters: videoStreamParameters
             )
 
-            guard let videoStreamURL = userSession.client.fullURL(with: videoStreamRequest)
+            guard let videoStreamURL = userSession.client.url(with: videoStreamRequest)
             else { throw ErrorMessage("Unable to make video stream URL") }
 
             return videoStreamURL

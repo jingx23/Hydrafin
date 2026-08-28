@@ -7,7 +7,7 @@
 //
 
 import Defaults
-import Factory
+import FactoryKit
 import Foundation
 import JellyfinAPI
 
@@ -61,7 +61,7 @@ extension StoredValues.Keys {
 
 // MARK: values
 
-extension UserAccessPolicy: Storable {}
+extension LocalUserAccessPolicy: Storable {}
 extension UserDto: @retroactive Defaults.Serializable {}
 extension UserDto: Storable {}
 extension UserState: Defaults.Serializable {}
@@ -87,7 +87,7 @@ extension StoredValues.Keys {
 
         // Doesn't use `CurrentUserKey` because data may be
         // retrieved and stored without a user session
-        static func accessPolicy(id: String) -> Key<UserAccessPolicy> {
+        static func accessPolicy(id: String) -> Key<LocalUserAccessPolicy> {
             UserKey(
                 ownerID: id,
                 field: "accessPolicy",
@@ -105,34 +105,18 @@ extension StoredValues.Keys {
             )
         }
 
-        static var accessPolicy: Key<UserAccessPolicy> {
+        static var accessPolicy: Key<LocalUserAccessPolicy> {
             CurrentUserKey(
                 field: "currentUserAccessPolicy",
                 default: .none
             )
         }
 
-        static func libraryDisplayType(parentID: String?) -> Key<LibraryDisplayType> {
+        static func libraryStyle(id: String?) -> Key<LibraryStyle> {
             CurrentUserKey(
-                parentID,
-                field: "setting-libraryDisplayType",
-                default: Defaults[.Customization.Library.displayType]
-            )
-        }
-
-        static func libraryListColumnCount(parentID: String?) -> Key<Int> {
-            CurrentUserKey(
-                parentID,
-                field: "setting-libraryListColumnCount",
-                default: Defaults[.Customization.Library.listColumnCount]
-            )
-        }
-
-        static func libraryPosterType(parentID: String?) -> Key<PosterDisplayType> {
-            CurrentUserKey(
-                parentID,
-                field: "setting-libraryPosterType",
-                default: Defaults[.Customization.Library.posterType]
+                id,
+                field: "setting-libraryStyle",
+                default: .default
             )
         }
 
@@ -214,6 +198,13 @@ extension StoredValues.Keys {
         static var forceHDRTranscode: Key<Bool> {
             CurrentUserKey(
                 field: "forceHDRTranscode",
+                default: false
+            )
+        }
+
+        static var forceSubtitleBurnIn: Key<Bool> {
+            CurrentUserKey(
+                field: "forceSubtitleBurnIn",
                 default: false
             )
         }

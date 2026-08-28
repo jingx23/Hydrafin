@@ -6,7 +6,6 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
 import JellyfinAPI
 import SwiftUI
 
@@ -17,30 +16,18 @@ struct EditServerUserAccessTagsView: View {
         let access: Bool
     }
 
-    // MARK: - Observed, State, & Environment Objects
-
     @Router
     private var router
 
-    @StateObject
-    private var viewModel: ServerUserAdminViewModel
-
-    // MARK: - Dialog States
-
     @State
     private var isPresentingDeleteConfirmation = false
-
-    // MARK: - Editing States
-
     @State
     private var selectedTags: Set<TagWithAccess> = []
     @State
     private var isEditing: Bool = false
 
-    // MARK: - Error State
-
-    @State
-    private var error: Error?
+    @StateObject
+    private var viewModel: ServerUserAdminViewModel
 
     private var hasTags: Bool {
         viewModel.user.policy?.blockedTags?.isEmpty == true &&
@@ -59,28 +46,26 @@ struct EditServerUserAccessTagsView: View {
             .map { TagWithAccess(tag: $0, access: false) } ?? []
     }
 
-    // MARK: - Initializera
-
     init(viewModel: ServerUserAdminViewModel) {
         self._viewModel = StateObject(wrappedValue: viewModel)
     }
-
-    // MARK: - Body
 
     var body: some View {
         ZStack {
             switch viewModel.state {
             case .initial, .content:
                 contentView
-            case let .error(error):
-                ErrorView(error: error)
+            case .error:
+                viewModel.error.map {
+                    ErrorView(error: $0)
+                }
             }
         }
+        .toolbarTitleDisplayMode(.inline)
         .navigationTitle(L10n.accessTags.localizedCapitalized)
-        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(isEditing)
         .refreshable {
-            viewModel.send(.refresh)
+            viewModel.refresh()
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -90,27 +75,37 @@ struct EditServerUserAccessTagsView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 if isEditing {
-                    Button(L10n.cancel) {
+                    Button(L10n.cancel, role: .cancel) {
                         isEditing = false
                         UIDevice.impact(.light)
                         selectedTags.removeAll()
                     }
-                    .buttonStyle(.toolbarPill)
+                    .foregroundStyle(.primary, .secondary)
+                    .if(true) { view in
+                        if #available(iOS 26.0, *) {
+                            view
+                        } else {
+                            view
+                                .backport
+                                .buttonStyle(.glass)
+                        }
+                    }
+                    .controlSize(.small)
                 }
             }
             ToolbarItem(placement: .bottomBar) {
                 if isEditing {
-                    Button(L10n.delete) {
+                    Button(L10n.delete, role: .destructive) {
                         isPresentingDeleteConfirmation = true
                     }
-                    .buttonStyle(.toolbarPill(.red))
+                    .backport
+                    .buttonStyle(.glassProminent)
                     .disabled(selectedTags.isEmpty)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
         }
         .navigationBarMenuButton(
-            isLoading: viewModel.backgroundStates.contains(.refreshing),
+            isLoading: viewModel.background.is(.refreshing) || viewModel.background.is(.updating),
             isHidden: isEditing || hasTags
         ) {
             Button(L10n.add, systemImage: "plus") {
@@ -119,14 +114,6 @@ struct EditServerUserAccessTagsView: View {
 
             Button(L10n.edit, systemImage: "checkmark.circle") {
                 isEditing = true
-            }
-        }
-        .onReceive(viewModel.events) { event in
-            switch event {
-            case let .error(eventError):
-                error = eventError
-            default:
-                break
             }
         }
         .confirmationDialog(
@@ -138,9 +125,10 @@ struct EditServerUserAccessTagsView: View {
         } message: {
             Text(L10n.deleteSelectedConfirmation)
         }
-        .errorMessage($error)
+        .errorMessage($viewModel.error)
     }
 
+    @ViewBuilder
     private func makeRow(tag: TagWithAccess) -> some View {
         EditAccessTagRow(tag: tag.tag) {
             if isEditing {
@@ -154,8 +142,7 @@ struct EditServerUserAccessTagsView: View {
         .isSelected(selectedTags.contains(tag))
     }
 
-    // MARK: - Content View
-
+    @ViewBuilder
     private var contentView: some View {
         List {
             ListTitleSection(
@@ -196,8 +183,6 @@ struct EditServerUserAccessTagsView: View {
         }
     }
 
-    // MARK: - Select/Remove All Button
-
     @ViewBuilder
     private var navigationBarSelectView: some View {
         let isAllSelected = selectedTags.count == blockedTags.count + allowedTags.count
@@ -205,11 +190,19 @@ struct EditServerUserAccessTagsView: View {
         Button(isAllSelected ? L10n.removeAll : L10n.selectAll) {
             selectedTags = isAllSelected ? [] : Set(blockedTags + allowedTags)
         }
-        .buttonStyle(.toolbarPill)
+        .foregroundStyle(.primary, .secondary)
+        .if(true) { view in
+            if #available(iOS 26.0, *) {
+                view
+            } else {
+                view
+                    .backport
+                    .buttonStyle(.glass)
+            }
+        }
+        .controlSize(.small)
         .disabled(!isEditing)
     }
-
-    // MARK: - Delete Selected Confirmation Actions
 
     @ViewBuilder
     private var deleteSelectedConfirmationActions: some View {
@@ -230,7 +223,7 @@ struct EditServerUserAccessTagsView: View {
                 }
             }
 
-            viewModel.send(.updatePolicy(tempPolicy))
+            viewModel.updatePolicy(tempPolicy)
             selectedTags.removeAll()
             isEditing = false
         }

@@ -107,56 +107,56 @@ final class IdentifyItemViewModel: ViewModel {
         case .boxSet:
             let parameters = BoxSetInfoRemoteSearchQuery(
                 itemID: itemID,
-                searchInfo: BoxSetInfo(
+                searchInfo: .init(
                     name: name,
                     originalTitle: originalTitle,
                     year: year
                 )
             )
             let request = Paths.getBoxSetRemoteSearchResults(parameters)
-            let response = try await userSession.client.send(request)
+            let response = try await send(request)
 
             searchResults = response.value
 
         case .movie:
             let parameters = MovieInfoRemoteSearchQuery(
                 itemID: itemID,
-                searchInfo: MovieInfo(
+                searchInfo: .init(
                     name: name,
                     originalTitle: originalTitle,
                     year: year
                 )
             )
             let request = Paths.getMovieRemoteSearchResults(parameters)
-            let response = try await userSession.client.send(request)
+            let response = try await send(request)
 
             searchResults = response.value
 
         case .person:
             let parameters = PersonLookupInfoRemoteSearchQuery(
                 itemID: itemID,
-                searchInfo: PersonLookupInfo(
+                searchInfo: .init(
                     name: name,
                     originalTitle: originalTitle,
                     year: year
                 )
             )
             let request = Paths.getPersonRemoteSearchResults(parameters)
-            let response = try await userSession.client.send(request)
+            let response = try await send(request)
 
             searchResults = response.value
 
         case .series:
             let parameters = SeriesInfoRemoteSearchQuery(
                 itemID: itemID,
-                searchInfo: SeriesInfo(
+                searchInfo: .init(
                     name: name,
                     originalTitle: originalTitle,
                     year: year
                 )
             )
             let request = Paths.getSeriesRemoteSearchResults(parameters)
-            let response = try await userSession.client.send(request)
+            let response = try await send(request)
 
             searchResults = response.value
 
@@ -170,9 +170,9 @@ final class IdentifyItemViewModel: ViewModel {
         guard let itemID = item.id else { return }
 
         let request = Paths.applySearchCriteria(itemID: itemID, searchResult)
-        _ = try await userSession.client.send(request)
+        _ = try await send(request)
 
-        _ = try await item.getFullItem(userSession: userSession, sendNotification: true)
+        _ = try await item.getFullItem(userSession: requireUserSession(), sendNotification: true)
 
         events.send(.updated)
     }
