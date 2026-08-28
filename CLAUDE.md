@@ -195,7 +195,7 @@ This fork is branded as **Hydrafin** (not Swiftfin). Key identity values:
 | Jellyfin client name | `"Hydrafin \(platform)"` in `Shared/Extensions/JellyfinAPI/JellyfinClient.swift` (shown in server dashboards) |
 | In-app brand | `ProperNouns.swiftfin = "Hydrafin"` in `Shared/Strings/ProperNouns.swift`; About screen text in `Shared/Views/AboutAppView.swift` |
 | Spotlight ID | `net.jingx.hydrafin` in `Swiftfin/App/SwiftfinSpotlight.swift` |
-| URL schemes | `hydrafin` (primary) + `swiftfin` (kept for compatibility) in both Info.plists |
+| URL scheme | `hydrafin` only, in both Info.plists (`swiftfin` deliberately NOT claimed — it would collide with the real Swiftfin app when both are installed) |
 | Target names | `Hydrafin iOS` / `Hydrafin tvOS` in `project.pbxproj` (the shared schemes reference these; do NOT rename the synchronized group `path = "Swiftfin tvOS"` or `INFOPLIST_FILE` — those must keep matching the folder names on disk) |
 | CI schemes | `Hydrafin` / `Hydrafin tvOS` in `.github/workflows/ci.yml` (matrix) and `.github/workflows/testflight.yml` (`IOS_SCHEME`/`TVOS_SCHEME`) |
 | Fastlane project | `xcodeProject = "Hydrafin.xcodeproj"` in `fastlane/Fastfile.swift` |

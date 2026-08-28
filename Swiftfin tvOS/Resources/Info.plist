@@ -22,7 +22,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>hydrafin</string>
-				<string>swiftfin</string>
 			</array>
 		</dict>
 	</array>
