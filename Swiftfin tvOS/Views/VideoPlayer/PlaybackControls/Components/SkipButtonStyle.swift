@@ -9,8 +9,8 @@
 import SwiftUI
 
 // Focusable text capsule for the floating "Skip Credits" / "Next Episode" button.
-// Like PlayerOverlayButtonStyle, uses a nested View to read @Environment(\.isFocused),
-// which ButtonStyle.makeBody can't hold directly.
+// Uses a nested View to read @Environment(\.isFocused), which
+// ButtonStyle.makeBody can't hold directly.
 struct SkipButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
