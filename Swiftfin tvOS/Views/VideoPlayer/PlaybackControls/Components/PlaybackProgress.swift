@@ -182,6 +182,17 @@ extension VideoPlayer.PlaybackControls {
                     liveIndicator
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
+                    if let runtime = manager.item.runtime, runtime > .zero {
+                        let remaining = runtime - scrubbedSecondsBox.value
+                        let endsAt = Date.now.addingTimeInterval(remaining.seconds)
+
+                        Text(L10n.endsAt(endsAt.formatted(date: .omitted, time: .shortened)))
+                            .font(.callout)
+                            .monospacedDigit()
+                            .foregroundStyle(.white.opacity(0.7))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+
                     videoPlayerSlider
 
                     SplitTimeStamp()

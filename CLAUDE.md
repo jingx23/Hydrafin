@@ -38,7 +38,10 @@ Upstream has no media-segment support. These files are fork-only — preserve on
 | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackControls+SegmentSkip.swift` | tvOS skip layer + skip logic extension on `VideoPlayer.PlaybackControls` |
 | `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/SkipButtonStyle.swift` | Focus-aware capsule button style for tvOS |
 
+**CRITICAL — seconds sync:** upstream's playback controls (progress bar, timestamps) are driven by `containerState.scrubbedSeconds`, which each proxy's player view must feed. Upstream's VLC view does this in `onSecondsUpdated`; the MPV equivalent is `MPVPlayerBodyView` in `MediaPlayerProxy+MPV.swift` (wraps `MPVPlayerView`, forwards `manager.secondsBox` → `containerState.scrubbedSeconds` when not scrubbing). Without it the player UI freezes at the start position.
+
 Small fork patches inside upstream files (re-apply after taking upstream):
+- `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/Components/PlaybackProgress.swift` — "Ends at HH:MM" wall-clock label above the slider (uses `L10n.endsAt`)
 - `Shared/Objects/VideoPlayerContainerState.swift` — `isSkipButtonFocused` published var (tvOS)
 - `Shared/Views/VideoPlayer/VideoPlayerContainerView/VideoPlayerContainerView.swift` — iOS: `SegmentSkipButton()` in the playback-controls ZStack; tvOS: `handleSelectEnded` forwards select presses when `isSkipButtonFocused`
 - `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift` — `showSkipButtons` default, `isSkipButtonFocused` FocusState, `currentSeconds` state, `segmentSkipLayer` in body ZStack, focus-management `onChange` handlers

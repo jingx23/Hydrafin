@@ -169,7 +169,7 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
     // MARK: - Video Player Body
 
     var videoPlayerBody: some View {
-        MPVPlayerView(proxy: self)
+        MPVPlayerBodyView(proxy: self)
     }
 
     // MARK: - Private
@@ -920,6 +920,28 @@ class MPVController: @unchecked Sendable {
 // MARK: - MPVPlayerView
 
 extension MPVMediaPlayerProxy {
+
+    /// Bridges mpv position updates into the container state, mirroring what
+    /// upstream's VLC player view does in `onSecondsUpdated` — the playback
+    /// controls (progress bar, timestamps) are driven by
+    /// `containerState.scrubbedSeconds`, not `manager.secondsBox`.
+    struct MPVPlayerBodyView: View {
+
+        let proxy: MPVMediaPlayerProxy
+
+        @EnvironmentObject
+        private var containerState: VideoPlayerContainerState
+        @EnvironmentObject
+        private var manager: MediaPlayerManager
+
+        var body: some View {
+            MPVPlayerView(proxy: proxy)
+                .onReceive(manager.secondsBox.$value.receive(on: DispatchQueue.main)) { seconds in
+                    guard !containerState.isScrubbing else { return }
+                    containerState.scrubbedSeconds.value = seconds
+                }
+        }
+    }
 
     struct MPVPlayerView: UIViewControllerRepresentable {
 
