@@ -21,13 +21,14 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>hydrafin</string>
 				<string>swiftfin</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>CFBundledisplayTitle</key>
+	<key>CFBundleDisplayName</key>
 	<string>Hydrafin</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>

@@ -190,9 +190,12 @@ This fork is branded as **Hydrafin** (not Swiftfin). Key identity values:
 | Setting | Value |
 |---------|-------|
 | Bundle ID | `net.jingx.hydrafin` |
-| iOS display name | `Hydrafin` (set via `INFOPLIST_KEY_CFBundleDisplayName` in `project.pbxproj`) |
-| tvOS display title | `Hydrafin` (set via `CFBundledisplayTitle` in `Swiftfin tvOS/Resources/Info.plist`) |
+| Display name (both platforms) | `CFBundleDisplayName = Hydrafin` set **directly in** `Swiftfin/Resources/Info.plist` and `Swiftfin tvOS/Resources/Info.plist`. (The `INFOPLIST_KEY_CFBundleDisplayName` build setting is inert here — the project uses custom Info.plist files, and the key merge only applies to generated plists. A bogus `CFBundledisplayTitle` key was removed 2026-08.) |
 | Primary xcconfig | `XcodeConfig/Shared.xcconfig` — `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin` |
+| Jellyfin client name | `"Hydrafin \(platform)"` in `Shared/Extensions/JellyfinAPI/JellyfinClient.swift` (shown in server dashboards) |
+| In-app brand | `ProperNouns.swiftfin = "Hydrafin"` in `Shared/Strings/ProperNouns.swift`; About screen text in `Shared/Views/AboutAppView.swift` |
+| Spotlight ID | `net.jingx.hydrafin` in `Swiftfin/App/SwiftfinSpotlight.swift` |
+| URL schemes | `hydrafin` (primary) + `swiftfin` (kept for compatibility) in both Info.plists |
 | Target names | `Hydrafin iOS` / `Hydrafin tvOS` in `project.pbxproj` (the shared schemes reference these; do NOT rename the synchronized group `path = "Swiftfin tvOS"` or `INFOPLIST_FILE` — those must keep matching the folder names on disk) |
 | CI schemes | `Hydrafin` / `Hydrafin tvOS` in `.github/workflows/ci.yml` (matrix) and `.github/workflows/testflight.yml` (`IOS_SCHEME`/`TVOS_SCHEME`) |
 | Fastlane project | `xcodeProject = "Hydrafin.xcodeproj"` in `fastlane/Fastfile.swift` |

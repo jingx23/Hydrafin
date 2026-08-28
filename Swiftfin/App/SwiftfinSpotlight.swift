@@ -18,7 +18,7 @@ struct SwiftfinSpotlight {
             attributeSet.title = L10n.jellyfin
 
             let searchableItem = CSSearchableItem(
-                uniqueIdentifier: "org.jellyfin.swiftfin",
+                uniqueIdentifier: "net.jingx.hydrafin",
                 domainIdentifier: nil,
                 attributeSet: attributeSet
             )
