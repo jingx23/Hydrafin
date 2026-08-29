@@ -66,7 +66,7 @@ In `Shared/Services/SwiftfinDefaults.swift`:
 
 Package: `https://github.com/mpvkit/MPVKit`
 Product linked: `MPVKit-GPL`
-Version constraint: `upToNextMajorVersion 0.41.0`
+Version constraint: `upToNextMajorVersion 1.0.0` (MPVKit versioning is decoupled from mpv's since 1.0.0 — 1.0.0 still ships mpv v0.41.0)
 
 **project.pbxproj UUIDs** (these never change — preserve on every merge):
 
@@ -86,8 +86,8 @@ Package.resolved entry (version may update, identity and location are fixed):
   "kind" : "remoteSourceControl",
   "location" : "https://github.com/mpvkit/MPVKit",
   "state" : {
-    "revision" : "613c0ccc3acf70e136aaff880a9b5fe8fdfaf5b8",
-    "version" : "0.41.0"
+    "revision" : "288527dffbc6d3e63cce147fc7b520c64a791603",
+    "version" : "1.0.0"
   }
 }
 ```
