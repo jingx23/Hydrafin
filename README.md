@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="Resources/primary-wide.svg" alt="Hydrafin" width="500"/>
   <h1>Hydrafin</h1>
   <img src="https://img.shields.io/badge/iOS-16+-red"/>
   <img src="https://img.shields.io/badge/tvOS-17+-red"/>
