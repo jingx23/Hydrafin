@@ -1232,7 +1232,7 @@
 			repositoryURL = "https://github.com/mpvkit/MPVKit";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.41.0;
+				minimumVersion = 1.0.0;
 			};
 		};
 		5335256F265EA0A0006CCA86 /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */ = {
