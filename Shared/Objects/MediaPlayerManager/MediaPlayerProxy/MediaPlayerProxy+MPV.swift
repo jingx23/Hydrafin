@@ -123,7 +123,6 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
                 let id = subtitleTrackID(for: resolvedIndex, mediaSource: playbackItem.mediaSource)
             {
                 mpvController?.setSubtitleTrack(id: id)
-                mpvController?.setOption("sub-forced-events-only", value: stream.isForced == true ? "yes" : "no")
             }
         }
     }
@@ -204,9 +203,6 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
         }()
 
         let defaultSubtitleIdx = item.selectedSubtitleStreamIndex ?? mediaSource.defaultSubtitleStreamIndex
-        let defaultSubtitleStream = mediaSource.mediaStreams?.first {
-            $0.type == .subtitle && $0.index == defaultSubtitleIdx
-        }
 
         let mpvSubtitleTrackID: Int? = {
             guard !baseItem.isLiveStream else { return nil }
@@ -220,8 +216,6 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
             return subtitleTrackID(for: resolvedIndex, mediaSource: mediaSource)
         }()
 
-        let subtitleForcedEventsOnly = defaultSubtitleStream?.isForced == true
-
         let configuration = MPVPlayerConfiguration(
             url: item.url,
             startSeconds: baseItem.isLiveStream ? nil : startSeconds,
@@ -230,7 +224,6 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
             subtitleSize: 25 - Defaults[.VideoPlayer.Subtitle.configuration].size,
             subtitleColor: Defaults[.VideoPlayer.Subtitle.configuration].color,
             subtitleFontName: Defaults[.VideoPlayer.Subtitle.configuration].fontName,
-            subtitleForcedEventsOnly: subtitleForcedEventsOnly,
             externalSubtitles: item.subtitleStreams
                 .filter { $0.deliveryMethod == .external }
                 .compactMap { stream -> (url: URL, title: String)? in
@@ -443,7 +436,6 @@ struct MPVPlayerConfiguration {
     let subtitleSize: Int
     let subtitleColor: Color
     let subtitleFontName: String
-    let subtitleForcedEventsOnly: Bool
     let externalSubtitles: [(url: URL, title: String)]
     /// Initial playback speed, restored from the persisted user setting
     /// (mirrors upstream VLC's `configuration.rate` at load).
@@ -664,7 +656,9 @@ class MPVController: @unchecked Sendable {
         // Apply subtitle settings
         setOption("sub-font-size", value: "\(configuration.subtitleSize)")
         setOption("sub-font", value: configuration.subtitleFontName)
-        setOption("sub-forced-events-only", value: configuration.subtitleForcedEventsOnly ? "yes" : "no")
+        // Jellyfin's `isForced` is a track-level disposition flag; mpv's `sub-forced-events-only`
+        // filters per event and hides every bitmap event without the per-event forced bit, which
+        // blanks most forced tracks. Leave it at mpv's default (`no`) and show forced tracks whole.
 
         let uiColor = UIColor(configuration.subtitleColor)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
