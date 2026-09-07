@@ -21,17 +21,27 @@ extern "C" {
 /// an unparseable channel layout, which prevents mpv's audiounit AO from
 /// initializing — manifesting as audio dropouts, A/V drift, or total silence.
 ///
-/// Moonfin's original fix returns stereo here; Hydrafin returns 7.1 instead so
-/// the bed of an Atmos source survives. CoreAudio's mixer downsamples to the
-/// actual output device's capability (5.1 / stereo) — there's no loss of
-/// compatibility, but multichannel-capable receivers get multichannel PCM
-/// instead of a stereo downmix.
+/// Moonfin's original fix returns stereo here, which collapses a 7.1.4 Atmos
+/// bed to two channels. Hydrafin instead reports the layout matching the
+/// current route's channel count (see setAudioUnitChannelLayoutFallbackChannels),
+/// so a multichannel-capable receiver gets multichannel PCM while a stereo-only
+/// route is not asked for 8 channels it cannot take.
 ///
 /// Idempotent and process-wide: safe to call multiple times; the rebind happens
 /// once and propagates to any image loaded later via _dyld_register_func_for_add_image.
 ///
 /// Credit: Approach adapted from the Moonfin tvOS project.
 void installAudioUnitChannelLayoutFix(void);
+
+/// Publishes the number of channels the current audio route can accept, used to
+/// pick the fallback layout above.
+///
+/// Call before playback starts and again whenever the route changes. Until it
+/// is called the fallback stays at 8 channels (MPEG 7.1). Values without a
+/// natural layout fall back to stereo.
+///
+/// Thread-safe: the value is stored atomically and read on the audio thread.
+void setAudioUnitChannelLayoutFallbackChannels(unsigned int channels);
 
 #ifdef __cplusplus
 }

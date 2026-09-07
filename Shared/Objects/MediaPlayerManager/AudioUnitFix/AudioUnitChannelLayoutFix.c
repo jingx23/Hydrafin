@@ -10,7 +10,7 @@
 // report an unparseable channel layout (error -10879), which makes mpv's
 // audiounit AO fail to initialize. We rebind AudioUnitGetPropertyInfo /
 // AudioUnitGetProperty at runtime so the failing channel layout query returns
-// a stereo fallback instead.
+// a layout matching the current route's channel count instead.
 //
 // Approach adapted from the Moonfin tvOS project.
 
@@ -21,8 +21,43 @@
 #include <mach-o/dyld.h>
 #include <mach-o/nlist.h>
 #include <mach/mach.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <libkern/OSCacheControl.h>
+
+// Number of channels the current audio route can actually accept, published
+// from Swift via setAudioUnitChannelLayoutFallbackChannels(). Defaults to 8 so
+// the layout reported before the route is known matches the previous
+// hardcoded 7.1 behavior.
+//
+// This matters because the layout below is what mpv believes the *device*
+// supports: claiming 7.1 on a stereo route (TV speakers, headphones, AirPlay)
+// asks the AudioUnit for a format the route cannot take.
+static atomic_uint g_fallback_channels = 8;
+
+void setAudioUnitChannelLayoutFallbackChannels(unsigned int channels)
+{
+    atomic_store(&g_fallback_channels, channels);
+}
+
+static AudioChannelLayoutTag fallback_channel_layout_tag(void)
+{
+    switch (atomic_load(&g_fallback_channels)) {
+    // MPEG 7.1 (L, R, C, LFE, Ls, Rs, Lc, Rc): an Atmos source's bed flows
+    // through with 7 ground channels intact. This is the case that keeps
+    // multichannel PCM landing on a 7.1-capable receiver over eARC.
+    case 8: return kAudioChannelLayoutTag_MPEG_7_1_A;
+    case 7: return kAudioChannelLayoutTag_MPEG_6_1_A;
+    case 6: return kAudioChannelLayoutTag_MPEG_5_1_A;
+    case 5: return kAudioChannelLayoutTag_MPEG_5_0_A;
+    case 4: return kAudioChannelLayoutTag_Quadraphonic;
+    case 3: return kAudioChannelLayoutTag_MPEG_3_0_A;
+    case 1: return kAudioChannelLayoutTag_Mono;
+    // Stereo is the safe-everywhere fallback, and what Moonfin returned
+    // unconditionally.
+    default: return kAudioChannelLayoutTag_Stereo;
+    }
+}
 
 static OSStatus (*orig_AudioUnitGetPropertyInfo)(AudioUnit, AudioUnitPropertyID,
     AudioUnitScope, AudioUnitElement, UInt32 *, Boolean *) = NULL;
@@ -72,16 +107,14 @@ static OSStatus patched_AudioUnitGetProperty(
         outData != NULL &&
         ioDataSize != NULL &&
         *ioDataSize >= sizeof(AudioChannelLayout)) {
-        // Originally Moonfin returned stereo here. Stereo is the safe-everywhere
-        // fallback but collapses a 7.1.4 Atmos bed to two channels. For Hydrafin
-        // we return MPEG 7.1 (L, R, C, LFE, Ls, Rs, Lc, Rc): an Atmos source's
-        // bed flows through with 7 ground channels intact, and CoreAudio's
-        // mixer downsamples to whatever the actual output device supports (5.1
-        // / stereo). On a 7.1-capable receiver (Sonos Arc via eARC) this means
-        // multichannel PCM lands on the receiver instead of a stereo downmix.
+        // Report a layout matching what the current route can accept (see
+        // fallback_channel_layout_tag). Moonfin returned stereo unconditionally,
+        // which collapses a 7.1.4 Atmos bed to two channels; reporting 7.1
+        // unconditionally has the opposite failure, asking a stereo-only route
+        // for 8 channels.
         AudioChannelLayout *layout = (AudioChannelLayout *)outData;
         memset(layout, 0, sizeof(AudioChannelLayout));
-        layout->mChannelLayoutTag = kAudioChannelLayoutTag_MPEG_7_1_A;
+        layout->mChannelLayoutTag = fallback_channel_layout_tag();
         *ioDataSize = (UInt32)sizeof(AudioChannelLayout);
         return noErr;
     }

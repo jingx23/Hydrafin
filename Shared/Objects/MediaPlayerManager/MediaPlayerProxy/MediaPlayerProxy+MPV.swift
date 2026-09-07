@@ -6,12 +6,14 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import AVFoundation
 import Combine
 import Defaults
 import FactoryKit
 import Foundation
 import JellyfinAPI
 import Libmpv
+import Logging
 import SwiftUI
 
 @MainActor
@@ -98,6 +100,13 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
 
     func setAudioStream(_ stream: MediaStream) {
         guard let playbackItem = manager?.playbackItem else { return }
+        // Transcodes contain a single audio track, so the only valid ID is 1.
+        // Changing tracks while transcoding rebuilds the item server-side
+        // (see MediaPlayerItem.isRebuildRequired) rather than switching here.
+        if playbackItem.mediaSource.transcodingURL != nil {
+            mpvController?.setAudioTrack(id: 1)
+            return
+        }
         let resolvedIndex = resolvedStreamIndex(
             for: stream,
             streamType: .audio,
@@ -186,6 +195,14 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
         // based on the order tracks appear in the file.
         let mpvAudioTrackID: Int? = {
             guard !baseItem.isLiveStream else { return nil }
+            // A transcode carries exactly one audio track — the one the server
+            // was asked to encode (see MediaTrackIndexMap.build). Positions from
+            // the original file don't apply: picking e.g. Jellyfin index 9 would
+            // ask mpv for `aid 9` on a stream that only has `aid 1`, which plays
+            // no audio at all.
+            if mediaSource.transcodingURL != nil {
+                return 1
+            }
             let defaultIdx = item.selectedAudioStreamIndex ?? mediaSource.defaultAudioStreamIndex
             guard let defaultIdx, defaultIdx >= 0 else { return nil }
             let resolvedIndex = resolvedStreamIndex(
@@ -467,6 +484,7 @@ class MPVController: @unchecked Sendable {
 
     private var mpv: OpaquePointer?
     private let queue = DispatchQueue(label: "mpv", qos: .userInitiated)
+    private let logger = Logger.swiftfin()
 
     nonisolated(unsafe) weak var delegate: (any MPVControllerDelegate)?
 
@@ -474,14 +492,36 @@ class MPVController: @unchecked Sendable {
 
     init() {}
 
+    /// Publishes the current route's output channel capability to the CoreAudio
+    /// channel-layout patch, so the layout it reports on a failed query matches
+    /// what the route can actually accept.
+    ///
+    /// Deliberately takes the *capability* rather than the currently configured
+    /// channel count: `currentRoute` can still read as stereo before the session
+    /// negotiates multichannel, and reporting stereo there would downgrade a
+    /// 7.1-capable receiver. An unknown route keeps the previous 7.1 assumption
+    /// for the same reason.
+    private func publishRouteChannelCount() {
+        let session = AVAudioSession.sharedInstance()
+        let routeChannels = session.currentRoute.outputs
+            .compactMap { $0.channels?.count }
+            .max() ?? 0
+        let capability = max(routeChannels, session.maximumOutputNumberOfChannels)
+        let channels = capability > 0 ? capability : 8
+
+        setAudioUnitChannelLayoutFallbackChannels(UInt32(channels))
+        logger.debug("MPV audio route capability: \(channels) channel(s)")
+    }
+
     func setupMpv() {
-        // Patch CoreAudio so the AudioUnit channel-layout query returns 7.1
-        // when it would otherwise fail with -10879 (the unparseable-layout
-        // error CoreAudio raises on Atmos sources). Without this, mpv falls
-        // back to a 5.1 default for Atmos and we lose the back-surround
-        // channels — confirmed by testing: removing this call drops the
-        // Sonos display from PCM 7.1 to PCM 5.1 on Atmos titles.
+        // Patch CoreAudio so the AudioUnit channel-layout query returns a
+        // usable layout when it would otherwise fail with -10879 (the
+        // unparseable-layout error CoreAudio raises on Atmos sources). Without
+        // this, mpv falls back to a 5.1 default for Atmos and we lose the
+        // back-surround channels — confirmed by testing: removing this call
+        // drops the receiver's display from PCM 7.1 to PCM 5.1 on Atmos titles.
         // Idempotent; safe to call on every setup.
+        publishRouteChannelCount()
         installAudioUnitChannelLayoutFix()
 
         mpv = mpv_create()
@@ -491,11 +531,10 @@ class MPVController: @unchecked Sendable {
         }
 
         // Configure MPV options
-        #if DEBUG
+        // Kept on in release builds: audio output failures here are otherwise
+        // invisible (see `audio-fallback-to-null` below), and "warn" is quiet
+        // during normal playback.
         checkError(mpv_request_log_messages(mpv, "warn"))
-        #else
-        checkError(mpv_request_log_messages(mpv, "no"))
-        #endif
 
         checkError(mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &metalLayer))
 
@@ -522,6 +561,11 @@ class MPVController: @unchecked Sendable {
         mpv_observe_property(mpv, 4, "pause", MPV_FORMAT_FLAG)
         mpv_observe_property(mpv, 5, "eof-reached", MPV_FORMAT_FLAG)
         mpv_observe_property(mpv, 6, "core-idle", MPV_FORMAT_FLAG)
+        // `audio-fallback-to-null` substitutes a silent output when the audio
+        // unit refuses the requested format. That failure is otherwise
+        // completely silent — video keeps playing and nothing surfaces in the
+        // UI — so report it explicitly.
+        mpv_observe_property(mpv, 7, "current-ao", MPV_FORMAT_STRING)
 
         mpv_set_wakeup_callback(mpv, { ctx in
             guard let ctx else { return }
@@ -836,14 +880,20 @@ class MPVController: @unchecked Sendable {
                         }
                     }
                 case MPV_EVENT_LOG_MESSAGE:
-                    #if DEBUG
                     if let msg = UnsafeMutablePointer<mpv_event_log_message>(OpaquePointer(event.pointee.data)) {
-                        print(
-                            "MPV [\(String(cString: msg.pointee.prefix!))] \(String(cString: msg.pointee.level!)): \(String(cString: msg.pointee.text!))",
-                            terminator: ""
-                        )
+                        let prefix = String(cString: msg.pointee.prefix)
+                        let level = String(cString: msg.pointee.level)
+                        let text = String(cString: msg.pointee.text)
+                            .trimmingCharacters(in: .newlines)
+
+                        guard text.isNotEmpty else { break }
+
+                        if level == "fatal" || level == "error" {
+                            self.logger.error("MPV [\(prefix)]: \(text)")
+                        } else {
+                            self.logger.warning("MPV [\(prefix)]: \(text)")
+                        }
                     }
-                    #endif
                 default:
                     break
                 }
@@ -870,6 +920,19 @@ class MPVController: @unchecked Sendable {
         case "video-params/h":
             if property.format == MPV_FORMAT_INT64, let data = property.data {
                 videoHeight = data.assumingMemoryBound(to: Int64.self).pointee
+            }
+        case "current-ao":
+            if property.format == MPV_FORMAT_STRING, let data = property.data {
+                let ao = data.assumingMemoryBound(to: UnsafePointer<CChar>?.self).pointee
+                    .map { String(cString: $0) } ?? ""
+
+                if ao == "null" {
+                    logger.error(
+                        "MPV fell back to the null audio output — playback will be silent because the audio unit refused the requested format."
+                    )
+                } else if ao.isNotEmpty {
+                    logger.debug("MPV audio output: \(ao)")
+                }
             }
         case "paused-for-cache":
             if property.format == MPV_FORMAT_FLAG, let data = property.data {
