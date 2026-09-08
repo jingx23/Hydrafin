@@ -217,12 +217,7 @@ extension VideoPlayerType {
                     isRequired: true,
                     property: .videoRangeType
                 ) {
-                    VideoRangeType.sdr
-                    VideoRangeType.hdr10
-                    VideoRangeType.hdr10Plus
-                    VideoRangeType.doviWithSDR
-                    VideoRangeType.doviWithHDR10
-                    VideoRangeType.doviWithHDR10Plus
+                    mpvVideoRangeTypes
                 }
             }
         )
@@ -248,12 +243,7 @@ extension VideoPlayerType {
                     isRequired: true,
                     property: .videoRangeType
                 ) {
-                    VideoRangeType.sdr
-                    VideoRangeType.hdr10
-                    VideoRangeType.hdr10Plus
-                    VideoRangeType.doviWithSDR
-                    VideoRangeType.doviWithHDR10
-                    VideoRangeType.doviWithHDR10Plus
+                    mpvVideoRangeTypes
                 }
             }
         )
@@ -279,14 +269,29 @@ extension VideoPlayerType {
                     isRequired: true,
                     property: .videoRangeType
                 ) {
-                    VideoRangeType.sdr
-                    VideoRangeType.hdr10
-                    VideoRangeType.hdr10Plus
-                    VideoRangeType.doviWithSDR
-                    VideoRangeType.doviWithHDR10
-                    VideoRangeType.doviWithHDR10Plus
+                    mpvVideoRangeTypes
                 }
             }
         )
+    }
+
+    /// Ranges mpv renders itself. The "force transcode" playback settings
+    /// remove Dolby Vision / HDR so the server tone-maps those titles to SDR.
+    /// Dual-layer Dolby Vision (`doviWithEL*`) is never listed: mpv cannot
+    /// decode the enhancement layer.
+    @ArrayBuilder<VideoRangeType>
+    private static var mpvVideoRangeTypes: [VideoRangeType] {
+        VideoRangeType.sdr
+
+        if PlaybackCapabilities.hdrEnabled {
+            VideoRangeType.hdr10
+            VideoRangeType.hdr10Plus
+        }
+
+        if PlaybackCapabilities.dvEnabled {
+            VideoRangeType.doviWithSDR
+            VideoRangeType.doviWithHDR10
+            VideoRangeType.doviWithHDR10Plus
+        }
     }
 }

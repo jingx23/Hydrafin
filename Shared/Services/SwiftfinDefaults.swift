@@ -348,8 +348,11 @@ extension Defaults.Keys {
                 UserKey("appMaximumResolution", default: .max)
             }
 
+            // Direct play by default: the `.auto` speed test measures a
+            // single small download, which on a LAN lands well below a UHD
+            // remux's bitrate and sends every such title to the transcoder.
             static var appMaximumBitrate: Key<PlaybackBitrate> {
-                UserKey("appMaximumBitrate", default: .auto)
+                UserKey("appMaximumBitrate", default: .max)
             }
 
             static var appMaximumBitrateTest: Key<PlaybackBitrateTestSize> {

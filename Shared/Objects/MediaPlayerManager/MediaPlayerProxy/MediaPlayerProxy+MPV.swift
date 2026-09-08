@@ -302,11 +302,24 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
     private func subtitleTrackID(for index: Int, mediaSource: MediaSourceInfo) -> Int? {
         let subtitleStreams = mediaSource.mediaStreams?
             .filter { $0.type == .subtitle } ?? []
-        let internalSubs = subtitleStreams.filter { !isExternalStream($0) }
+        guard let stream = subtitleStreams.first(where: { $0.index == index }) else { return nil }
+        // A burned-in subtitle is already part of the picture; selecting a
+        // track on top of it would draw a second, unrelated one.
+        if stream.deliveryMethod == .encode {
+            return nil
+        }
+        // A transcode's HLS stream carries no subtitle tracks of its own (see
+        // MediaTrackIndexMap.build): every selectable subtitle arrives as a
+        // sidecar through `sub-add`, so mpv numbers them from 1 regardless of
+        // where they sat in the original file.
+        let internalSubs = mediaSource.transcodingURL == nil
+            ? subtitleStreams.filter { !isExternalStream($0) }
+            : []
         if let position = internalSubs.firstIndex(where: { $0.index == index }) {
             return position + 1
         }
-        let externalSubs = subtitleStreams.filter { isExternalStream($0) }
+        // Mirrors the `sub-add` order in MPVController.loadFile.
+        let externalSubs = subtitleStreams.filter { $0.deliveryMethod == .external }
         if let position = externalSubs.firstIndex(where: { $0.index == index }) {
             return internalSubs.count + position + 1
         }
@@ -609,6 +622,9 @@ class MPVController: @unchecked Sendable {
         checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "250MiB"))
         checkError(mpv_set_option_string(mpv, "demuxer-max-back-bytes", "75MiB"))
         checkError(mpv_set_option_string(mpv, "demuxer-readahead-secs", "30"))
+        // Ride out short network drops by reconnecting the HTTP stream in
+        // place instead of ending playback.
+        checkError(mpv_set_option_string(mpv, "stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5"))
 
         // iOS: keep audio-clocked sync to avoid battery cost of interpolation
         checkError(mpv_set_option_string(mpv, "video-sync", "audio"))
@@ -618,6 +634,9 @@ class MPVController: @unchecked Sendable {
         // mobile chips at 4K. HDR layer engagement is decided separately by
         // `isHighPerformanceVideo` (configureColorSpace + setupMpvOutputIntent).
         checkError(mpv_set_option_string(mpv, "deinterlace", "auto"))
+        // Dithering is off unless a depth is given; without it
+        // `temporal-dither` is inert and 10-bit sources band on 8-bit output.
+        checkError(mpv_set_option_string(mpv, "dither-depth", "auto"))
         checkError(mpv_set_option_string(mpv, "temporal-dither", "yes"))
     }
     #endif
@@ -656,6 +675,9 @@ class MPVController: @unchecked Sendable {
         checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "250MiB"))
         checkError(mpv_set_option_string(mpv, "demuxer-max-back-bytes", "75MiB"))
         checkError(mpv_set_option_string(mpv, "demuxer-readahead-secs", "30"))
+        // Ride out short network drops by reconnecting the HTTP stream in
+        // place instead of ending playback.
+        checkError(mpv_set_option_string(mpv, "stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5"))
 
         // Apple TV displays are HDMI: enable Match Content Frame Rate in tvOS
         // settings and the display refresh follows the source — combined with
@@ -668,6 +690,9 @@ class MPVController: @unchecked Sendable {
         // Quality — cheap-only. Heavier options (ewa_lanczos, deband,
         // hdr-compute-peak, interpolation) overran A15 Apple TV 4K at 4K HDR.
         checkError(mpv_set_option_string(mpv, "deinterlace", "auto"))
+        // Dithering is off unless a depth is given; without it
+        // `temporal-dither` is inert and 10-bit sources band on 8-bit output.
+        checkError(mpv_set_option_string(mpv, "dither-depth", "auto"))
         checkError(mpv_set_option_string(mpv, "temporal-dither", "yes"))
     }
     #endif
