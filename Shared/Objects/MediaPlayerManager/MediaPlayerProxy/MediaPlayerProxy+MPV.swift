@@ -6,15 +6,18 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import AVFoundation
 import Combine
 import Defaults
 import FactoryKit
-import Foundation
 import JellyfinAPI
-import Libmpv
-import Logging
+import MPVUI
 import SwiftUI
+
+// SPIKE (spike/mpvui): MPVUI replaces the hand-rolled MPVKit controller.
+// MPVUI owns rendering (Metal or AVSampleBufferDisplayLayer), surface resizing,
+// the audio output (AVFoundation, AC3/EAC3 bitstream), Dolby Vision and tvOS
+// display matching. This proxy keeps Hydrafin's Jellyfin track mapping and the
+// bridges into the fork's player UI.
 
 @MainActor
 class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
@@ -25,9 +28,16 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
     let isBuffering: PublishedBox<Bool> = .init(initialValue: false)
     let videoSize: PublishedBox<CGSize> = .init(initialValue: .zero)
     let droppedFrames: PublishedBox<Int> = .init(initialValue: 0)
+    /// mpv has no counterpart to VLC's corrupted-frame statistic.
     let corruptedFrames: PublishedBox<Int> = .init(initialValue: 0)
 
-    private var mpvController: MPVController?
+    let player = MPVPlayer(configuration: MPVMediaPlayerProxy.makeConfiguration())
+
+    /// Track selection for the loaded item, applied once mpv reports its tracks.
+    private var pendingAudioTrackID: Int?
+    private var pendingSubtitleTrackID: Int?
+    private var hasPendingTrackSelection = false
+
     private var managerItemObserver: AnyCancellable?
     private var managerStateObserver: AnyCancellable?
 
@@ -47,10 +57,8 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
 
                 managerStateObserver = manager.$state
                     .sink { [weak self] state in
-                        switch state {
-                        case .stopped:
-                            self?.playbackStopped()
-                        default: break
+                        if state == .stopped {
+                            self?.player.stop()
                         }
                     }
             } else {
@@ -64,38 +72,40 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
         NowPlayableObserver(),
     ]
 
+    init() {
+        #if os(iOS)
+        player.pictureInPicture.allowsAutomaticStartFromInline = true
+        #endif
+    }
+
     // MARK: - Playback Controls
 
     func play() {
-        mpvController?.play()
+        player.play()
     }
 
     func pause() {
-        mpvController?.pause()
+        player.pause()
     }
 
     func stop() {
-        mpvController?.stop()
+        player.stop()
     }
 
     func jumpForward(_ seconds: Duration) {
-        guard let mpv = mpvController else { return }
-        let current = mpv.getCurrentTime()
-        mpv.seek(to: current + seconds.seconds)
+        player.seek(by: seconds)
     }
 
     func jumpBackward(_ seconds: Duration) {
-        guard let mpv = mpvController else { return }
-        let current = mpv.getCurrentTime()
-        mpv.seek(to: max(0, current - seconds.seconds))
+        player.seek(by: .zero - seconds)
     }
 
     func setRate(_ rate: Float) {
-        mpvController?.setRate(Double(rate))
+        player.setPlaybackRate(Double(rate))
     }
 
     func setSeconds(_ seconds: Duration) {
-        mpvController?.seek(to: seconds.seconds)
+        player.seek(to: seconds)
     }
 
     func setAudioStream(_ stream: MediaStream) {
@@ -104,74 +114,48 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
         // Changing tracks while transcoding rebuilds the item server-side
         // (see MediaPlayerItem.isRebuildRequired) rather than switching here.
         if playbackItem.mediaSource.transcodingURL != nil {
-            mpvController?.setAudioTrack(id: 1)
+            selectTrack(type: .audio, mpvID: 1)
             return
         }
-        let resolvedIndex = resolvedStreamIndex(
-            for: stream,
-            streamType: .audio,
-            playbackItem: playbackItem
-        )
-        guard let resolvedIndex else { return }
-        // mpv expects per-type 1-based IDs in the order tracks appear in the file.
-        if let position = audioTrackPosition(for: resolvedIndex, mediaSource: playbackItem.mediaSource) {
-            mpvController?.setAudioTrack(id: position + 1)
-        }
+        guard let resolvedIndex = resolvedStreamIndex(for: stream, streamType: .audio, playbackItem: playbackItem),
+              let position = audioTrackPosition(for: resolvedIndex, mediaSource: playbackItem.mediaSource)
+        else { return }
+        selectTrack(type: .audio, mpvID: position + 1)
     }
 
     func setSubtitleStream(_ stream: MediaStream) {
         guard let index = stream.index else { return }
-        if index < 0 {
-            mpvController?.setSubtitleTrack(id: nil)
-        } else if let playbackItem = manager?.playbackItem {
-            if let resolvedIndex = resolvedStreamIndex(
-                for: stream,
-                streamType: .subtitle,
-                playbackItem: playbackItem
-            ),
-                let id = subtitleTrackID(for: resolvedIndex, mediaSource: playbackItem.mediaSource)
-            {
-                mpvController?.setSubtitleTrack(id: id)
-            }
+        guard index >= 0 else {
+            player.selectSubtitle(nil)
+            return
         }
+        guard let playbackItem = manager?.playbackItem,
+              let resolvedIndex = resolvedStreamIndex(for: stream, streamType: .subtitle, playbackItem: playbackItem),
+              let id = subtitleTrackID(for: resolvedIndex, mediaSource: playbackItem.mediaSource)
+        else { return }
+        selectTrack(type: .subtitle, mpvID: id)
     }
 
     func setAspectFill(_ aspectFill: Bool) {
-        mpvController?.setAspectFill(aspectFill)
+        player.setProperty("panscan", to: aspectFill ? "1.0" : "0.0")
     }
 
     // MARK: - Offset Configuration
 
     func setAudioOffset(_ seconds: Duration) {
-        mpvController?.setAudioDelay(seconds.seconds)
+        player.setAudioDelay(seconds)
     }
 
     func setSubtitleOffset(_ seconds: Duration) {
-        mpvController?.setSubtitleDelay(seconds.seconds)
+        player.setSubtitleDelay(seconds)
     }
 
     // MARK: - Subtitle Configuration
 
     func setSubtitleConfiguration(_ configuration: SubtitleConfiguration) {
-        setSubtitleColor(configuration.color)
-        setSubtitleFontName(configuration.fontName)
-        setSubtitleFontSize(25 - configuration.size)
-    }
-
-    func setSubtitleColor(_ color: Color) {
-        let uiColor = UIColor(color)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-        let hex = String(format: "#%02X%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255), Int(a * 255))
-        mpvController?.setOption("sub-color", value: hex)
-    }
-
-    func setSubtitleFontName(_ fontName: String) {
-        mpvController?.setOption("sub-font", value: fontName)
-    }
-
-    func setSubtitleFontSize(_ fontSize: Int) {
-        mpvController?.setOption("sub-font-size", value: "\(fontSize)")
+        for (name, value) in Self.subtitleOptions(configuration) {
+            player.setProperty(name, to: value)
+        }
     }
 
     // MARK: - Video Player Body
@@ -180,863 +164,204 @@ class MPVMediaPlayerProxy: VideoMediaPlayerProxy,
         MPVPlayerBodyView(proxy: self)
     }
 
-    // MARK: - Private
+    // MARK: - Loading
 
     private func playNew(item: MediaPlayerItem) {
         let baseItem = item.baseItem
-        let mediaSource = item.mediaSource
 
         let startSeconds = max(
             .zero,
             (baseItem.startSeconds ?? .zero) - Duration.seconds(Defaults[.VideoPlayer.resumeOffset])
         )
 
-        // mpv uses per-type 1-based track IDs (aid 1, 2, 3... / sid 1, 2, 3...)
-        // based on the order tracks appear in the file.
-        let mpvAudioTrackID: Int? = {
-            guard !baseItem.isLiveStream else { return nil }
-            // A transcode carries exactly one audio track — the one the server
-            // was asked to encode (see MediaTrackIndexMap.build). Positions from
-            // the original file don't apply: picking e.g. Jellyfin index 9 would
-            // ask mpv for `aid 9` on a stream that only has `aid 1`, which plays
-            // no audio at all.
-            if mediaSource.transcodingURL != nil {
-                return 1
-            }
-            let defaultIdx = item.selectedAudioStreamIndex ?? mediaSource.defaultAudioStreamIndex
-            guard let defaultIdx, defaultIdx >= 0 else { return nil }
-            let resolvedIndex = resolvedStreamIndex(
-                forIndex: defaultIdx,
-                streamType: .audio,
-                playbackItem: item
-            )
-            if let resolvedIndex,
-               let position = audioTrackPosition(for: resolvedIndex, mediaSource: mediaSource)
-            {
-                return position + 1
-            }
-            let fallbackStreams = mediaSource.mediaStreams?.filter { $0.type == .audio && !isExternalStream($0) } ?? []
-            return fallbackStreams.isEmpty ? nil : 1
-        }()
+        pendingAudioTrackID = initialAudioTrackID(for: item)
+        pendingSubtitleTrackID = initialSubtitleTrackID(for: item)
+        hasPendingTrackSelection = !baseItem.isLiveStream
+        isBuffering.value = true
+        droppedFrames.value = 0
 
-        let defaultSubtitleIdx = item.selectedSubtitleStreamIndex ?? mediaSource.defaultSubtitleStreamIndex
+        player.load(item.url, autoPlay: true, startTime: baseItem.isLiveStream ? nil : startSeconds)
+        setRate(manager?.rate ?? Defaults[.VideoPlayer.Playback.playbackRate])
 
-        let mpvSubtitleTrackID: Int? = {
-            guard !baseItem.isLiveStream else { return nil }
-            guard let defaultIdx = defaultSubtitleIdx, defaultIdx >= 0 else { return nil }
-            let resolvedIndex = resolvedStreamIndex(
-                forIndex: defaultIdx,
-                streamType: .subtitle,
-                playbackItem: item
-            )
-            guard let resolvedIndex else { return nil }
-            return subtitleTrackID(for: resolvedIndex, mediaSource: mediaSource)
-        }()
-
-        let configuration = MPVPlayerConfiguration(
-            url: item.url,
-            startSeconds: baseItem.isLiveStream ? nil : startSeconds,
-            audioTrackID: mpvAudioTrackID,
-            subtitleTrackID: mpvSubtitleTrackID,
-            subtitleSize: 25 - Defaults[.VideoPlayer.Subtitle.configuration].size,
-            subtitleColor: Defaults[.VideoPlayer.Subtitle.configuration].color,
-            subtitleFontName: Defaults[.VideoPlayer.Subtitle.configuration].fontName,
-            externalSubtitles: item.subtitleStreams
-                .filter { $0.deliveryMethod == .external }
-                .compactMap { stream -> (url: URL, title: String)? in
-                    guard let deliveryURL = stream.deliveryURL,
-                          let client = Container.shared.currentUserSession()?.client else { return nil }
-                    let deliveryPath = deliveryURL.removingFirst(
-                        if: client.configuration.url.absoluteString.last == "/"
-                    )
-                    guard let fullURL = client.url(path: deliveryPath) else { return nil }
-                    return (url: fullURL, title: stream.displayTitle ?? "")
-                },
-            playbackRate: Defaults[.VideoPlayer.Playback.playbackRate]
-        )
-
-        if let mpvController {
-            mpvController.loadFile(configuration)
-        } else {
-            // Controller will be created by the view and load this config
-            pendingConfiguration = configuration
-        }
-
-        #if os(tvOS)
-        // Switch the Apple TV HDMI output to match content frame rate +
-        // dynamic range. Without this the TV stays in its current mode and
-        // doesn't engage HDR brightness even if our Metal layer is in PQ.
-        if let videoStream = item.videoStreams.first {
-            DisplayCriteriaManager.shared.apply(videoStream: videoStream)
-        }
-        #endif
-    }
-
-    private func playbackStopped() {
-        #if os(tvOS)
-        DisplayCriteriaManager.shared.reset()
-        #endif
-        mpvController?.stop()
-        mpvController?.cleanup()
-        mpvController = nil
-    }
-
-    fileprivate var pendingConfiguration: MPVPlayerConfiguration?
-
-    fileprivate func attachController(_ controller: MPVController) {
-        mpvController = controller
-        controller.delegate = self
-
-        if let config = pendingConfiguration {
-            pendingConfiguration = nil
-            controller.loadFile(config)
+        // Sidecars are numbered after the embedded subtitles in `sub-add` order,
+        // which `subtitleTrackID(for:mediaSource:)` relies on.
+        for url in externalSubtitleURLs(for: item) {
+            player.loadExternalSubtitle(url, selecting: nil)
         }
     }
 
-    private func audioTrackPosition(for index: Int, mediaSource: MediaSourceInfo) -> Int? {
-        let audioStreams = mediaSource.mediaStreams?
-            .filter { $0.type == .audio && !isExternalStream($0) } ?? []
-        return audioStreams.firstIndex(where: { $0.index == index })
-    }
-
-    private func subtitleTrackID(for index: Int, mediaSource: MediaSourceInfo) -> Int? {
-        let subtitleStreams = mediaSource.mediaStreams?
-            .filter { $0.type == .subtitle } ?? []
-        guard let stream = subtitleStreams.first(where: { $0.index == index }) else { return nil }
-        // A burned-in subtitle is already part of the picture; selecting a
-        // track on top of it would draw a second, unrelated one.
-        if stream.deliveryMethod == .encode {
-            return nil
+    private func initialAudioTrackID(for item: MediaPlayerItem) -> Int? {
+        let mediaSource = item.mediaSource
+        guard !item.baseItem.isLiveStream else { return nil }
+        // A transcode carries exactly one audio track — the one the server was
+        // asked to encode. Positions from the original file don't apply.
+        if mediaSource.transcodingURL != nil {
+            return 1
         }
-        // A transcode's HLS stream carries no subtitle tracks of its own (see
-        // MediaTrackIndexMap.build): every selectable subtitle arrives as a
-        // sidecar through `sub-add`, so mpv numbers them from 1 regardless of
-        // where they sat in the original file.
-        let internalSubs = mediaSource.transcodingURL == nil
-            ? subtitleStreams.filter { !isExternalStream($0) }
-            : []
-        if let position = internalSubs.firstIndex(where: { $0.index == index }) {
+        let defaultIndex = item.selectedAudioStreamIndex ?? mediaSource.defaultAudioStreamIndex
+        guard let defaultIndex, defaultIndex >= 0 else { return nil }
+        if let resolvedIndex = resolvedStreamIndex(forIndex: defaultIndex, streamType: .audio, playbackItem: item),
+           let position = audioTrackPosition(for: resolvedIndex, mediaSource: mediaSource)
+        {
             return position + 1
         }
-        // Mirrors the `sub-add` order in MPVController.loadFile.
-        let externalSubs = subtitleStreams.filter { $0.deliveryMethod == .external }
-        if let position = externalSubs.firstIndex(where: { $0.index == index }) {
-            return internalSubs.count + position + 1
-        }
-        return nil
+        let fallbackStreams = mediaSource.mediaStreams?.filter { $0.type == .audio && !isExternalStream($0) } ?? []
+        return fallbackStreams.isEmpty ? nil : 1
     }
 
-    private func isExternalStream(_ stream: MediaStream) -> Bool {
-        (stream.isExternal ?? false) || stream.deliveryMethod == .external
+    private func initialSubtitleTrackID(for item: MediaPlayerItem) -> Int? {
+        let mediaSource = item.mediaSource
+        guard !item.baseItem.isLiveStream,
+              let defaultIndex = item.selectedSubtitleStreamIndex ?? mediaSource.defaultSubtitleStreamIndex,
+              defaultIndex >= 0,
+              let resolvedIndex = resolvedStreamIndex(forIndex: defaultIndex, streamType: .subtitle, playbackItem: item)
+        else { return nil }
+        return subtitleTrackID(for: resolvedIndex, mediaSource: mediaSource)
     }
 
-    private func resolvedStreamIndex(
-        for stream: MediaStream,
-        streamType: MediaStreamType,
-        playbackItem: MediaPlayerItem
-    ) -> Int? {
-        if let type = stream.type, type != streamType {
-            return nil
-        }
-        if let index = stream.index,
-           let direct = playbackItem.mediaSource.mediaStreams?
-               .first(where: { $0.type == streamType && $0.index == index })
+    private func externalSubtitleURLs(for item: MediaPlayerItem) -> [URL] {
+        guard let client = Container.shared.currentUserSession()?.client else { return [] }
+        return item.subtitleStreams
+            .filter { $0.deliveryMethod == .external }
+            .compactMap { $0.url(with: client) }
+    }
+
+    // MARK: - Track Selection
+
+    /// Applies the item's initial audio/subtitle choice once mpv has listed the
+    /// file's tracks. Selecting through MPVUI (rather than setting `aid`/`sid`
+    /// directly) lets it request native subtitle composition for sample-buffer output.
+    fileprivate func applyPendingTrackSelectionIfPossible() {
+        guard hasPendingTrackSelection, player.mediaInformation.tracks.isNotEmpty else { return }
+
+        let externalCount = manager?.playbackItem?.subtitleStreams.count(where: { $0.deliveryMethod == .external }) ?? 0
+        if let subtitleID = pendingSubtitleTrackID,
+           player.subtitleTracks.count(where: { $0.mpvID == subtitleID }) == 0,
+           player.subtitleTracks.count(where: \.isExternal) < externalCount
         {
-            return direct.index
-        }
-        if let index = stream.index,
-           let resolvedByPosition = resolvedStreamIndex(
-               forIndex: index,
-               streamType: streamType,
-               playbackItem: playbackItem
-           )
-        {
-            return resolvedByPosition
-        }
-        return originalStreamIndex(for: stream, mediaSource: playbackItem.mediaSource)
-    }
-
-    private func resolvedStreamIndex(
-        forIndex index: Int,
-        streamType: MediaStreamType,
-        playbackItem: MediaPlayerItem
-    ) -> Int? {
-        if let direct = playbackItem.mediaSource.mediaStreams?
-            .first(where: { $0.type == streamType && $0.index == index })
-        {
-            return direct.index
-        }
-        switch streamType {
-        case .audio:
-            guard let position = playbackItem.audioStreams.firstIndex(where: { $0.index == index }) else { return nil }
-            let audioStreams = playbackItem.mediaSource.mediaStreams?
-                .filter { $0.type == .audio && !isExternalStream($0) } ?? []
-            guard position < audioStreams.count else { return nil }
-            return audioStreams[position].index
-        case .subtitle:
-            guard let position = playbackItem.subtitleStreams.firstIndex(where: { $0.index == index }) else { return nil }
-            let subtitleStreams = playbackItem.mediaSource.mediaStreams?
-                .filter { $0.type == .subtitle } ?? []
-            let internalSubs = subtitleStreams.filter { !isExternalStream($0) }
-            let externalSubs = subtitleStreams.filter { isExternalStream($0) }
-            if position < internalSubs.count {
-                return internalSubs[position].index
-            }
-            let externalIndex = position - internalSubs.count
-            guard externalIndex < externalSubs.count else { return nil }
-            return externalSubs[externalIndex].index
-        default:
-            return nil
-        }
-    }
-
-    private func originalStreamIndex(for stream: MediaStream, mediaSource: MediaSourceInfo) -> Int? {
-        guard let streams = mediaSource.mediaStreams else { return nil }
-        let isExternal = isExternalStream(stream)
-        let candidates = streams.filter {
-            $0.type == stream.type && isExternalStream($0) == isExternal
-        }
-        if let match = candidates.first(where: { matchesStream($0, stream) }) {
-            return match.index
-        }
-        if let match = candidates.first(where: { $0.displayTitle == stream.displayTitle && $0.language == stream.language }) {
-            return match.index
-        }
-        return nil
-    }
-
-    private func matchesStream(_ lhs: MediaStream, _ rhs: MediaStream) -> Bool {
-        lhs.displayTitle == rhs.displayTitle &&
-            lhs.language == rhs.language &&
-            lhs.codec == rhs.codec &&
-            lhs.channels == rhs.channels &&
-            lhs.channelLayout == rhs.channelLayout &&
-            lhs.bitRate == rhs.bitRate &&
-            lhs.sampleRate == rhs.sampleRate &&
-            lhs.isDefault == rhs.isDefault &&
-            lhs.isForced == rhs.isForced
-    }
-}
-
-// MARK: - MPVControllerDelegate
-
-extension MPVMediaPlayerProxy: MPVControllerDelegate {
-
-    nonisolated func mpvController(_ controller: MPVController, didUpdateSeconds seconds: Double, videoSize: CGSize) {
-        Task { @MainActor in
-            self.manager?.seconds = .seconds(seconds)
-            self.videoSize.value = videoSize
-        }
-    }
-
-    nonisolated func mpvController(_ controller: MPVController, didUpdateDroppedFrames droppedFrames: Int) {
-        Task { @MainActor in
-            self.droppedFrames.value = droppedFrames
-        }
-    }
-
-    nonisolated func mpvController(_ controller: MPVController, didChangePlaybackState state: MPVPlaybackState) {
-        Task { @MainActor in
-            switch state {
-            case .playing:
-                self.isBuffering.value = false
-                self.manager?.setPlaybackRequestStatus(status: .playing)
-            case .paused:
-                self.manager?.setPlaybackRequestStatus(status: .paused)
-            case .buffering:
-                self.isBuffering.value = true
-            case .ended:
-                guard let playbackItem = self.manager?.playbackItem,
-                      !playbackItem.baseItem.isLiveStream else { return }
-                self.isBuffering.value = false
-                self.manager?.ended()
-            case let .error(message):
-                self.isBuffering.value = false
-                self.manager?.error(ErrorMessage(message))
-            case .idle:
-                break
-            }
-        }
-    }
-}
-
-// MARK: - MPV Player Configuration
-
-struct MPVPlayerConfiguration {
-    let url: URL
-    let startSeconds: Duration?
-    /// mpv 1-based audio track ID (aid)
-    let audioTrackID: Int?
-    /// mpv 1-based subtitle track ID (sid), nil to disable
-    let subtitleTrackID: Int?
-    let subtitleSize: Int
-    let subtitleColor: Color
-    let subtitleFontName: String
-    let externalSubtitles: [(url: URL, title: String)]
-    /// Initial playback speed, restored from the persisted user setting
-    /// (mirrors upstream VLC's `configuration.rate` at load).
-    let playbackRate: Float
-}
-
-// MARK: - MPV Playback State
-
-enum MPVPlaybackState {
-    case idle
-    case playing
-    case paused
-    case buffering
-    case ended
-    case error(String)
-}
-
-// MARK: - MPVControllerDelegate Protocol
-
-@MainActor
-protocol MPVControllerDelegate: AnyObject {
-    nonisolated func mpvController(_ controller: MPVController, didUpdateSeconds seconds: Double, videoSize: CGSize)
-    nonisolated func mpvController(_ controller: MPVController, didUpdateDroppedFrames droppedFrames: Int)
-    nonisolated func mpvController(_ controller: MPVController, didChangePlaybackState state: MPVPlaybackState)
-}
-
-// MARK: - MPVController
-
-class MPVController: @unchecked Sendable {
-
-    private var mpv: OpaquePointer?
-    private let queue = DispatchQueue(label: "mpv", qos: .userInitiated)
-    private let logger = Logger.swiftfin()
-
-    nonisolated(unsafe) weak var delegate: (any MPVControllerDelegate)?
-
-    var metalLayer = MetalLayer()
-
-    init() {}
-
-    /// Publishes the current route's output channel capability to the CoreAudio
-    /// channel-layout patch, so the layout it reports on a failed query matches
-    /// what the route can actually accept.
-    ///
-    /// Deliberately takes the *capability* rather than the currently configured
-    /// channel count: `currentRoute` can still read as stereo before the session
-    /// negotiates multichannel, and reporting stereo there would downgrade a
-    /// 7.1-capable receiver. An unknown route keeps the previous 7.1 assumption
-    /// for the same reason.
-    private func publishRouteChannelCount() {
-        let session = AVAudioSession.sharedInstance()
-        let routeChannels = session.currentRoute.outputs
-            .compactMap { $0.channels?.count }
-            .max() ?? 0
-        let capability = max(routeChannels, session.maximumOutputNumberOfChannels)
-        let channels = capability > 0 ? capability : 8
-
-        setAudioUnitChannelLayoutFallbackChannels(UInt32(channels))
-        logger.debug("MPV audio route capability: \(channels) channel(s)")
-    }
-
-    func setupMpv() {
-        // Patch CoreAudio so the AudioUnit channel-layout query returns a
-        // usable layout when it would otherwise fail with -10879 (the
-        // unparseable-layout error CoreAudio raises on Atmos sources). Without
-        // this, mpv falls back to a 5.1 default for Atmos and we lose the
-        // back-surround channels — confirmed by testing: removing this call
-        // drops the receiver's display from PCM 7.1 to PCM 5.1 on Atmos titles.
-        // Idempotent; safe to call on every setup.
-        publishRouteChannelCount()
-        installAudioUnitChannelLayoutFix()
-
-        mpv = mpv_create()
-        if mpv == nil {
-            print("Failed creating MPV context")
+            // The wanted sidecar is still loading; retry on the next track update.
             return
         }
 
-        // Configure MPV options
-        // Kept on in release builds: audio output failures here are otherwise
-        // invisible (see `audio-fallback-to-null` below), and "warn" is quiet
-        // during normal playback.
-        checkError(mpv_request_log_messages(mpv, "warn"))
-
-        checkError(mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &metalLayer))
-
-        #if os(iOS)
-        setupMpvIOS()
-        #elseif os(tvOS)
-        setupMpvTVOS()
-        #endif
-
-        setupMpvOutputIntent()
-
-        // Safety net: if the audio output unit refuses a requested format
-        // (e.g. spdif bitstream on tvOS's RemoteIO, or an exotic channel
-        // layout), don't stall the video clock. Play silent audio instead.
-        checkError(mpv_set_option_string(mpv, "audio-fallback-to-null", "yes"))
-
-        checkError(mpv_initialize(mpv))
-
-        // Observe properties
-        mpv_observe_property(mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG)
-        mpv_observe_property(mpv, 1, "time-pos", MPV_FORMAT_DOUBLE)
-        mpv_observe_property(mpv, 2, "video-params/w", MPV_FORMAT_INT64)
-        mpv_observe_property(mpv, 3, "video-params/h", MPV_FORMAT_INT64)
-        mpv_observe_property(mpv, 4, "pause", MPV_FORMAT_FLAG)
-        mpv_observe_property(mpv, 5, "eof-reached", MPV_FORMAT_FLAG)
-        mpv_observe_property(mpv, 6, "core-idle", MPV_FORMAT_FLAG)
-        // `audio-fallback-to-null` substitutes a silent output when the audio
-        // unit refuses the requested format. That failure is otherwise
-        // completely silent — video keeps playing and nothing surfaces in the
-        // UI — so report it explicitly.
-        mpv_observe_property(mpv, 7, "current-ao", MPV_FORMAT_STRING)
-        // Feed the Playback Information "Dropped frames" row. mpv has no
-        // counterpart to VLC's corrupted-frame statistic, so that row stays 0.
-        mpv_observe_property(mpv, 8, "frame-drop-count", MPV_FORMAT_INT64)
-        mpv_observe_property(mpv, 9, "decoder-frame-drop-count", MPV_FORMAT_INT64)
-
-        mpv_set_wakeup_callback(mpv, { ctx in
-            guard let ctx else { return }
-            let controller = Unmanaged<MPVController>.fromOpaque(ctx).takeUnretainedValue()
-            controller.readEvents()
-        }, Unmanaged.passUnretained(self).toOpaque())
-    }
-
-    #if os(iOS)
-    private func setupMpvIOS() {
-        // Video output and rendering
-        checkError(mpv_set_option_string(mpv, "vo", "gpu-next"))
-        checkError(mpv_set_option_string(mpv, "gpu-api", "vulkan"))
-        checkError(mpv_set_option_string(mpv, "gpu-context", "moltenvk"))
-        checkError(mpv_set_option_string(mpv, "hwdec", "videotoolbox"))
-        checkError(mpv_set_option_string(mpv, "hwdec-codecs", "all"))
-
-        // Video scaling and positioning
-        checkError(mpv_set_option_string(mpv, "video-aspect-override", "no"))
-        checkError(mpv_set_option_string(mpv, "video-unscaled", "no"))
-        checkError(mpv_set_option_string(mpv, "keepaspect", "yes"))
-        checkError(mpv_set_option_string(mpv, "keepaspect-window", "yes"))
-        checkError(mpv_set_option_string(mpv, "panscan", "0.0"))
-        checkError(mpv_set_option_string(mpv, "video-zoom", "0"))
-        checkError(mpv_set_option_string(mpv, "video-pan-x", "0"))
-        checkError(mpv_set_option_string(mpv, "video-pan-y", "0"))
-        checkError(mpv_set_option_string(mpv, "video-align-x", "0"))
-        checkError(mpv_set_option_string(mpv, "video-align-y", "0"))
-
-        // Subtitles
-        checkError(mpv_set_option_string(mpv, "subs-match-os-language", "no"))
-        checkError(mpv_set_option_string(mpv, "subs-fallback", "no"))
-
-        // Other options
-        checkError(mpv_set_option_string(mpv, "video-rotate", "no"))
-
-        // Network + buffering
-        checkError(mpv_set_option_string(mpv, "network-timeout", "30"))
-        checkError(mpv_set_option_string(mpv, "cache", "yes"))
-        checkError(mpv_set_option_string(mpv, "cache-secs", "120"))
-        checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "250MiB"))
-        checkError(mpv_set_option_string(mpv, "demuxer-max-back-bytes", "75MiB"))
-        checkError(mpv_set_option_string(mpv, "demuxer-readahead-secs", "30"))
-        // Ride out short network drops by reconnecting the HTTP stream in
-        // place instead of ending playback.
-        checkError(mpv_set_option_string(mpv, "stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5"))
-
-        // iOS: keep audio-clocked sync to avoid battery cost of interpolation
-        checkError(mpv_set_option_string(mpv, "video-sync", "audio"))
-        checkError(mpv_set_option_string(mpv, "interpolation", "no"))
-
-        // Quality — cheap-only. `deband` + `ewa_lanczos` are too heavy on
-        // mobile chips at 4K. HDR layer engagement is decided separately by
-        // `isHighPerformanceVideo` (configureColorSpace + setupMpvOutputIntent).
-        checkError(mpv_set_option_string(mpv, "deinterlace", "auto"))
-        // Dithering is off unless a depth is given; without it
-        // `temporal-dither` is inert and 10-bit sources band on 8-bit output.
-        checkError(mpv_set_option_string(mpv, "dither-depth", "auto"))
-        checkError(mpv_set_option_string(mpv, "temporal-dither", "yes"))
-    }
-    #endif
-
-    #if os(tvOS)
-    private func setupMpvTVOS() {
-        // Video output and rendering
-        checkError(mpv_set_option_string(mpv, "vo", "gpu-next"))
-        checkError(mpv_set_option_string(mpv, "gpu-api", "vulkan"))
-        checkError(mpv_set_option_string(mpv, "gpu-context", "moltenvk"))
-        checkError(mpv_set_option_string(mpv, "hwdec", "videotoolbox"))
-        checkError(mpv_set_option_string(mpv, "hwdec-codecs", "all"))
-
-        // Video scaling and positioning
-        checkError(mpv_set_option_string(mpv, "video-aspect-override", "no"))
-        checkError(mpv_set_option_string(mpv, "video-unscaled", "no"))
-        checkError(mpv_set_option_string(mpv, "keepaspect", "yes"))
-        checkError(mpv_set_option_string(mpv, "panscan", "0.0"))
-        checkError(mpv_set_option_string(mpv, "video-zoom", "0"))
-        checkError(mpv_set_option_string(mpv, "video-pan-x", "0"))
-        checkError(mpv_set_option_string(mpv, "video-pan-y", "0"))
-        checkError(mpv_set_option_string(mpv, "video-align-x", "0"))
-        checkError(mpv_set_option_string(mpv, "video-align-y", "0"))
-
-        // Subtitles
-        checkError(mpv_set_option_string(mpv, "subs-match-os-language", "no"))
-        checkError(mpv_set_option_string(mpv, "subs-fallback", "no"))
-
-        // Other options
-        checkError(mpv_set_option_string(mpv, "video-rotate", "no"))
-
-        // Network + buffering
-        checkError(mpv_set_option_string(mpv, "network-timeout", "30"))
-        checkError(mpv_set_option_string(mpv, "cache", "yes"))
-        checkError(mpv_set_option_string(mpv, "cache-secs", "120"))
-        checkError(mpv_set_option_string(mpv, "demuxer-max-bytes", "250MiB"))
-        checkError(mpv_set_option_string(mpv, "demuxer-max-back-bytes", "75MiB"))
-        checkError(mpv_set_option_string(mpv, "demuxer-readahead-secs", "30"))
-        // Ride out short network drops by reconnecting the HTTP stream in
-        // place instead of ending playback.
-        checkError(mpv_set_option_string(mpv, "stream-lavf-o", "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5"))
-
-        // Apple TV displays are HDMI: enable Match Content Frame Rate in tvOS
-        // settings and the display refresh follows the source — combined with
-        // display-resample we get smooth 24p without expensive interpolation.
-        // (Apple TV 4K 3rd gen uses A15, same chip as iPad mini 6: it cannot
-        // afford interpolation=yes + deband + hdr-compute-peak at 4K.)
-        checkError(mpv_set_option_string(mpv, "video-sync", "display-resample"))
-        checkError(mpv_set_option_string(mpv, "interpolation", "no"))
-
-        // Quality — cheap-only. Heavier options (ewa_lanczos, deband,
-        // hdr-compute-peak, interpolation) overran A15 Apple TV 4K at 4K HDR.
-        checkError(mpv_set_option_string(mpv, "deinterlace", "auto"))
-        // Dithering is off unless a depth is given; without it
-        // `temporal-dither` is inert and 10-bit sources band on 8-bit output.
-        checkError(mpv_set_option_string(mpv, "dither-depth", "auto"))
-        checkError(mpv_set_option_string(mpv, "temporal-dither", "yes"))
-    }
-    #endif
-
-    /// Configures color management / tone mapping. The HDR pipeline is engaged
-    /// only on devices that have both an HDR-capable display path AND enough
-    /// GPU bandwidth to drive a 4K HDR drawable (see `isHighPerformanceVideo`).
-    ///
-    /// `hdr-compute-peak` is disabled everywhere: even Apple TV 4K (A15) can't
-    /// afford per-frame histogram analysis at 4K. mpv falls back to
-    /// metadata-driven peak — fine for HDR10 / DV / HLG.
-    private func setupMpvOutputIntent() {
-        let useHDRPipeline = PlaybackCapabilities.isDeviceHDRCapable
-            && PlaybackCapabilities.isHighPerformanceVideo
-
-        if useHDRPipeline {
-            checkError(mpv_set_option_string(mpv, "target-colorspace-hint", "auto"))
-            checkError(mpv_set_option_string(mpv, "target-prim", "auto"))
-            checkError(mpv_set_option_string(mpv, "target-trc", "auto"))
-            checkError(mpv_set_option_string(mpv, "tone-mapping", "auto"))
-            checkError(mpv_set_option_string(mpv, "gamut-mapping-mode", "auto"))
-            checkError(mpv_set_option_string(mpv, "hdr-compute-peak", "no"))
+        hasPendingTrackSelection = false
+        if let audioID = pendingAudioTrackID {
+            selectTrack(type: .audio, mpvID: audioID)
         }
-        // Else: mpv defaults handle SDR-only displays / lower-end iOS devices.
-    }
-
-    func loadFile(_ configuration: MPVPlayerConfiguration) {
-        guard mpv != nil else { return }
-
-        // Apply subtitle settings
-        setOption("sub-font-size", value: "\(configuration.subtitleSize)")
-        setOption("sub-font", value: configuration.subtitleFontName)
-        // Jellyfin's `isForced` is a track-level disposition flag; mpv's `sub-forced-events-only`
-        // filters per event and hides every bitmap event without the per-event forced bit, which
-        // blanks most forced tracks. Leave it at mpv's default (`no`) and show forced tracks whole.
-
-        let uiColor = UIColor(configuration.subtitleColor)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-        let hex = String(format: "#%02X%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255), Int(a * 255))
-        setOption("sub-color", value: hex)
-
-        // Apply initial playback speed
-        setRate(Double(configuration.playbackRate))
-
-        // Load the file
-        command("loadfile", args: [configuration.url.absoluteString, "replace"])
-
-        // Set start position
-        if let startSeconds = configuration.startSeconds, startSeconds > .zero {
-            // Use start option before loading for precise seeking
-            setOption("start", value: "\(startSeconds.seconds)")
-        }
-
-        // Add external subtitles
-        for subtitle in configuration.externalSubtitles {
-            command("sub-add", args: [subtitle.url.absoluteString, "auto", subtitle.title])
-        }
-
-        // Set audio/subtitle tracks
-        if let audioTrackID = configuration.audioTrackID, audioTrackID >= 0 {
-            command("set", args: ["aid", "\(audioTrackID)"])
-        }
-
-        if let subtitleTrackID = configuration.subtitleTrackID {
-            if subtitleTrackID >= 0 {
-                command("set", args: ["sid", "\(subtitleTrackID)"])
-            } else {
-                command("set", args: ["sid", "no"])
-            }
-        }
-    }
-
-    // MARK: - Playback Controls
-
-    func play() {
-        setFlag("pause", false)
-    }
-
-    func pause() {
-        setFlag("pause", true)
-    }
-
-    func stop() {
-        command("stop", checkForErrors: false)
-    }
-
-    func seek(to position: Double) {
-        command("seek", args: ["\(position)", "absolute", "exact"])
-    }
-
-    func getCurrentTime() -> Double {
-        getDouble("time-pos")
-    }
-
-    func getDuration() -> Double {
-        getDouble("duration")
-    }
-
-    func setRate(_ rate: Double) {
-        guard mpv != nil else { return }
-        var value = rate
-        mpv_set_property(mpv, "speed", MPV_FORMAT_DOUBLE, &value)
-    }
-
-    func setAudioTrack(id: Int) {
-        command("set", args: ["aid", "\(id)"])
-    }
-
-    func setSubtitleTrack(id: Int?) {
-        if let id {
-            command("set", args: ["sid", "\(id)"])
+        if let subtitleID = pendingSubtitleTrackID {
+            selectTrack(type: .subtitle, mpvID: subtitleID)
         } else {
-            command("set", args: ["sid", "no"])
+            player.selectSubtitle(nil)
         }
     }
 
-    func setAudioDelay(_ seconds: Double) {
-        guard mpv != nil else { return }
-        var value = seconds
-        mpv_set_property(mpv, "audio-delay", MPV_FORMAT_DOUBLE, &value)
-    }
-
-    func setSubtitleDelay(_ seconds: Double) {
-        guard mpv != nil else { return }
-        var value = seconds
-        mpv_set_property(mpv, "sub-delay", MPV_FORMAT_DOUBLE, &value)
-    }
-
-    func setAspectFill(_ fill: Bool) {
-        setOption("panscan", value: fill ? "1.0" : "0.0")
-    }
-
-    func setOption(_ name: String, value: String) {
-        guard mpv != nil else { return }
-        mpv_set_property_string(mpv, name, value)
-    }
-
-    // MARK: - Private Helpers
-
-    private var videoWidth: Int64 = 0
-    private var videoHeight: Int64 = 0
-    private var outputDroppedFrames: Int64 = 0
-    private var decoderDroppedFrames: Int64 = 0
-
-    private func getDouble(_ name: String) -> Double {
-        guard mpv != nil else { return 0.0 }
-        var data = Double()
-        mpv_get_property(mpv, name, MPV_FORMAT_DOUBLE, &data)
-        return data
-    }
-
-    private func getFlag(_ name: String) -> Bool {
-        guard mpv != nil else { return false }
-        var data = Int64()
-        mpv_get_property(mpv, name, MPV_FORMAT_FLAG, &data)
-        return data > 0
-    }
-
-    private func setFlag(_ name: String, _ flag: Bool) {
-        guard mpv != nil else { return }
-        var data: Int = flag ? 1 : 0
-        mpv_set_property(mpv, name, MPV_FORMAT_FLAG, &data)
-    }
-
-    func command(_ command: String, args: [String?] = [], checkForErrors: Bool = true) {
-        guard mpv != nil else { return }
-        var cargs = makeCArgs(command, args).map { $0.flatMap { UnsafePointer<CChar>(strdup($0)) } }
-        defer {
-            for ptr in cargs where ptr != nil {
-                free(UnsafeMutablePointer(mutating: ptr!))
-            }
+    private func selectTrack(type: MPVTrackType, mpvID: Int) {
+        guard let track = player.mediaInformation.tracks.first(where: { $0.type == type && $0.mpvID == mpvID }) else {
+            return
         }
-        let returnValue = mpv_command(mpv, &cargs)
-        if checkForErrors {
-            checkError(returnValue)
-        }
-    }
-
-    private func makeCArgs(_ command: String, _ args: [String?]) -> [String?] {
-        if !args.isEmpty, args.last == nil {
-            fatalError("Command do not need a nil suffix")
-        }
-        var strArgs = args
-        strArgs.insert(command, at: 0)
-        strArgs.append(nil)
-        return strArgs
-    }
-
-    private func readEvents() {
-        queue.async { [weak self] in
-            guard let self, self.mpv != nil else { return }
-
-            while self.mpv != nil {
-                let event = mpv_wait_event(self.mpv, 0)
-                guard let event, event.pointee.event_id != MPV_EVENT_NONE else { break }
-
-                switch event.pointee.event_id {
-                case MPV_EVENT_PROPERTY_CHANGE:
-                    self.handlePropertyChange(event)
-                case MPV_EVENT_SHUTDOWN:
-                    self.mpv = nil
-                    return
-                case MPV_EVENT_END_FILE:
-                    if let data = event.pointee.data {
-                        let endFile = data.assumingMemoryBound(to: mpv_event_end_file.self).pointee
-                        if endFile.reason == MPV_END_FILE_REASON_EOF {
-                            self.delegate?.mpvController(self, didChangePlaybackState: .ended)
-                        } else if endFile.reason == MPV_END_FILE_REASON_ERROR {
-                            let errorStr = String(cString: mpv_error_string(endFile.error))
-                            self.delegate?.mpvController(self, didChangePlaybackState: .error("MPV playback error: \(errorStr)"))
-                        }
-                    }
-                case MPV_EVENT_LOG_MESSAGE:
-                    if let msg = UnsafeMutablePointer<mpv_event_log_message>(OpaquePointer(event.pointee.data)) {
-                        let prefix = String(cString: msg.pointee.prefix)
-                        let level = String(cString: msg.pointee.level)
-                        let text = String(cString: msg.pointee.text)
-                            .trimmingCharacters(in: .newlines)
-
-                        guard text.isNotEmpty else { break }
-
-                        if level == "fatal" || level == "error" {
-                            self.logger.error("MPV [\(prefix)]: \(text)")
-                        } else {
-                            self.logger.warning("MPV [\(prefix)]: \(text)")
-                        }
-                    }
-                default:
-                    break
-                }
-            }
-        }
-    }
-
-    private func handlePropertyChange(_ event: UnsafePointer<mpv_event>) {
-        guard let dataPtr = OpaquePointer(event.pointee.data) else { return }
-        let property = UnsafePointer<mpv_event_property>(dataPtr).pointee
-        let propertyName = String(cString: property.name)
-
-        switch propertyName {
-        case "time-pos":
-            if property.format == MPV_FORMAT_DOUBLE, let data = property.data {
-                let seconds = data.assumingMemoryBound(to: Double.self).pointee
-                let size = CGSize(width: CGFloat(videoWidth), height: CGFloat(videoHeight))
-                delegate?.mpvController(self, didUpdateSeconds: seconds, videoSize: size)
-            }
-        case "video-params/w":
-            if property.format == MPV_FORMAT_INT64, let data = property.data {
-                videoWidth = data.assumingMemoryBound(to: Int64.self).pointee
-            }
-        case "video-params/h":
-            if property.format == MPV_FORMAT_INT64, let data = property.data {
-                videoHeight = data.assumingMemoryBound(to: Int64.self).pointee
-            }
-        case "frame-drop-count", "decoder-frame-drop-count":
-            if property.format == MPV_FORMAT_INT64, let data = property.data {
-                let count = data.assumingMemoryBound(to: Int64.self).pointee
-                if propertyName == "frame-drop-count" {
-                    outputDroppedFrames = count
-                } else {
-                    decoderDroppedFrames = count
-                }
-                delegate?.mpvController(self, didUpdateDroppedFrames: Int(outputDroppedFrames + decoderDroppedFrames))
-            }
-        case "current-ao":
-            if property.format == MPV_FORMAT_STRING, let data = property.data {
-                let ao = data.assumingMemoryBound(to: UnsafePointer<CChar>?.self).pointee
-                    .map { String(cString: $0) } ?? ""
-
-                if ao == "null" {
-                    logger.error(
-                        "MPV fell back to the null audio output — playback will be silent because the audio unit refused the requested format."
-                    )
-                } else if ao.isNotEmpty {
-                    logger.debug("MPV audio output: \(ao)")
-                }
-            }
-        case "paused-for-cache":
-            if property.format == MPV_FORMAT_FLAG, let data = property.data {
-                let buffering = data.assumingMemoryBound(to: Int32.self).pointee != 0
-                if buffering {
-                    delegate?.mpvController(self, didChangePlaybackState: .buffering)
-                }
-            }
-        case "pause":
-            if property.format == MPV_FORMAT_FLAG, let data = property.data {
-                let paused = data.assumingMemoryBound(to: Int32.self).pointee != 0
-                delegate?.mpvController(self, didChangePlaybackState: paused ? .paused : .playing)
+        switch type {
+        case .subtitle:
+            if track.subtitleRole != .primary {
+                player.selectSubtitle(track.id)
             }
         default:
+            if !track.isSelected {
+                player.selectTrack(track.id)
+            }
+        }
+    }
+
+    // MARK: - State
+
+    fileprivate func handleStateChange(_ state: MPVPlaybackState) {
+        isBuffering.value = state.isTransient
+
+        switch state {
+        case .playing:
+            manager?.setPlaybackRequestStatus(status: .playing)
+        case .paused:
+            manager?.setPlaybackRequestStatus(status: .paused)
+        case .ended:
+            guard let manager, manager.playbackItem?.baseItem.isLiveStream == false else { return }
+            manager.seconds = player.position
+            manager.ended()
+        case let .failed(error):
+            manager?.error(ErrorMessage("\(error)"))
+        case .idle, .loading, .ready, .buffering, .seeking, .stopped:
             break
         }
     }
 
-    private func checkError(_ status: CInt) {
-        if status < 0 {
-            print("MPV API error: \(String(cString: mpv_error_string(status)))")
-        }
+    fileprivate func handleDiagnosticsChange(_ diagnostics: MPVPlaybackDiagnostics) {
+        let dropped = (diagnostics.outputDroppedFrames ?? 0) + (diagnostics.decoderDroppedFrames ?? 0)
+        droppedFrames.value = Int(clamping: dropped)
     }
 
-    func cleanup() {
-        guard mpv != nil else { return }
-
-        mpv_set_wakeup_callback(mpv, nil, nil)
-        command("stop", checkForErrors: false)
-
-        // Destroy the vo on the main thread before terminating mpv: frees Vulkan/Metal allocations and flushes pending CATransactions.
-        setOption("vo", value: "null")
-
-        if let device = metalLayer.device {
-            device.makeCommandQueue()?.makeCommandBuffer()?.commit()
-        }
-
-        Thread.sleep(forTimeInterval: 0.1)
-
-        mpv_terminate_destroy(mpv)
-        mpv = nil
-    }
-
-    deinit {
-        cleanup()
+    fileprivate func handleDimensionsChange(_ dimensions: MPVVideoDimensions?) {
+        videoSize.value = CGSize(width: dimensions?.effectiveWidth ?? 0, height: dimensions?.effectiveHeight ?? 0)
     }
 }
 
-// MARK: - MPVPlayerView
+// MARK: - Configuration
 
 extension MPVMediaPlayerProxy {
 
-    /// Bridges manager/settings state into mpv, mirroring what upstream's VLC
-    /// player view does inline:
-    /// - position updates → `containerState.scrubbedSeconds` (drives the
-    ///   playback controls' progress bar and timestamps)
+    /// Tuning knobs under test in the spike.
+    private enum Spike {
+        /// `.sampleBuffer` enables native Dolby Vision and iOS PiP; MPVUI falls
+        /// back to Metal per file when the format needs it.
+        static let videoOutput: MPVPlayerConfiguration.VideoOutput = .sampleBuffer
+        /// `.profile7Compatibility` converts DV Profile 7 (lossy) so it plays as DV
+        /// instead of its HDR10 base layer.
+        static let dolbyVisionPolicy: MPVDolbyVisionPolicy = .strict
+    }
+
+    static func makeConfiguration() -> MPVPlayerConfiguration {
+        MPVPlayerConfiguration(
+            additionalOptions: baseOptions.merging(
+                subtitleOptions(Defaults[.VideoPlayer.Subtitle.configuration]),
+                uniquingKeysWith: { _, new in new }
+            ),
+            audio: .init(),
+            dolbyVisionPolicy: Spike.dolbyVisionPolicy,
+            networkCacheSeconds: .seconds(120),
+            playbackRate: Double(Defaults[.VideoPlayer.Playback.playbackRate]),
+            videoOutput: Spike.videoOutput
+        )
+    }
+
+    /// Carried over from the MPVKit controller; rendering, hwdec and sync
+    /// options are now MPVUI's responsibility.
+    private static let baseOptions: [String: String] = [
+        "network-timeout": "30",
+        "demuxer-max-bytes": "250MiB",
+        "demuxer-max-back-bytes": "75MiB",
+        "demuxer-readahead-secs": "30",
+        // Ride out short network drops by reconnecting the HTTP stream in place.
+        "stream-lavf-o": "reconnect=1,reconnect_streamed=1,reconnect_delay_max=5",
+        "subs-match-os-language": "no",
+        "subs-fallback": "no",
+    ]
+
+    fileprivate static func subtitleOptions(_ configuration: SubtitleConfiguration) -> [String: String] {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(configuration.color).getRed(&r, green: &g, blue: &b, alpha: &a)
+        let hex = String(format: "#%02X%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255), Int(a * 255))
+        return [
+            "sub-color": hex,
+            "sub-font": configuration.fontName,
+            "sub-font-size": "\(25 - configuration.size)",
+        ]
+    }
+}
+
+// MARK: - MPVPlayerBodyView
+
+extension MPVMediaPlayerProxy {
+
+    /// Bridges MPVUI player state and manager/settings state, mirroring what
+    /// upstream's VLC player view does inline:
+    /// - position → `manager.seconds` and `containerState.scrubbedSeconds`
+    ///   (drives the progress bar and timestamps)
     /// - `manager.rate` → mpv speed (playback speed menu)
     /// - subtitle configuration changes → mpv sub options (live updates)
     struct MPVPlayerBodyView: View {
@@ -1051,11 +376,30 @@ extension MPVMediaPlayerProxy {
         @EnvironmentObject
         private var manager: MediaPlayerManager
 
+        private var player: MPVPlayer {
+            proxy.player
+        }
+
         var body: some View {
-            MPVPlayerView(proxy: proxy)
+            MPVVideoPlayer(player: player)
+                .onChange(of: player.position) {
+                    manager.seconds = player.position
+                }
                 .onReceive(manager.secondsBox.$value.receive(on: DispatchQueue.main)) { seconds in
                     guard !containerState.isScrubbing else { return }
                     containerState.scrubbedSeconds.value = seconds
+                }
+                .onChange(of: player.state) {
+                    proxy.handleStateChange(player.state)
+                }
+                .onChange(of: player.mediaInformation.tracks) {
+                    proxy.applyPendingTrackSelectionIfPossible()
+                }
+                .onChange(of: player.mediaInformation.dimensions) {
+                    proxy.handleDimensionsChange(player.mediaInformation.dimensions)
+                }
+                .onChange(of: player.playbackDiagnostics) {
+                    proxy.handleDiagnosticsChange(player.playbackDiagnostics)
                 }
                 .onChange(of: manager.rate) {
                     proxy.setRate(manager.rate)
@@ -1064,118 +408,5 @@ extension MPVMediaPlayerProxy {
                     proxy.setSubtitleConfiguration(subtitleConfiguration)
                 }
         }
-    }
-
-    struct MPVPlayerView: UIViewControllerRepresentable {
-
-        let proxy: MPVMediaPlayerProxy
-
-        func makeUIViewController(context: Context) -> MPVMetalViewController {
-            MPVMetalViewController(proxy: proxy)
-        }
-
-        func updateUIViewController(_ uiViewController: MPVMetalViewController, context: Context) {}
-    }
-}
-
-// MARK: - MPVMetalViewController
-
-final class MPVMetalViewController: UIViewController {
-
-    private let proxy: MPVMediaPlayerProxy
-    private let controller: MPVController
-
-    init(proxy: MPVMediaPlayerProxy) {
-        self.proxy = proxy
-        self.controller = MPVController()
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        let metalLayer = controller.metalLayer
-
-        metalLayer.frame = view.bounds
-        #if os(iOS)
-        metalLayer.contentsScale = UIScreen.main.nativeScale
-        metalLayer.allowsNextDrawableTimeout = false
-        #elseif os(tvOS)
-        metalLayer.contentsScale = UIScreen.main.scale
-        #endif
-        configureColorSpace(on: metalLayer)
-        metalLayer.framebufferOnly = true
-        metalLayer.backgroundColor = UIColor.black.cgColor
-        view.layer.addSublayer(metalLayer)
-
-        controller.setupMpv()
-        proxy.attachController(controller)
-    }
-
-    /// Picks the pixel format + colorspace for the Metal drawable.
-    ///
-    /// HDR-capable display + enough GPU bandwidth → rgba16Float + Rec.2100 PQ.
-    /// HDR content passes through natively; SDR content is presented through
-    /// the EDR pipeline.
-    ///
-    /// Otherwise → bgra8Unorm + sRGB. rgba16Float doubles framebuffer bandwidth,
-    /// which overruns A15-class chips when driving an external 4K HDR display
-    /// (iPhone 13 / SE3 / iPad mini 6).
-    private func configureColorSpace(on metalLayer: CAMetalLayer) {
-        let useHDRLayer = PlaybackCapabilities.isDeviceHDRCapable
-            && PlaybackCapabilities.isHighPerformanceVideo
-
-        if useHDRLayer {
-            metalLayer.pixelFormat = .rgba16Float
-            #if os(iOS)
-            metalLayer.wantsExtendedDynamicRangeContent = true
-            #endif
-            metalLayer.colorspace = CGColorSpace(name: CGColorSpace.itur_2100_PQ)
-        } else {
-            metalLayer.pixelFormat = .bgra8Unorm
-            metalLayer.colorspace = CGColorSpace(name: CGColorSpace.sRGB)
-        }
-    }
-
-    private var lastBoundsSize: CGSize = .zero
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-
-        let metalLayer = controller.metalLayer
-        let bounds = view.bounds
-        guard bounds.width > 0, bounds.height > 0 else { return }
-
-        #if os(iOS)
-        let scale = UIScreen.main.nativeScale
-        #elseif os(tvOS)
-        let scale = UIScreen.main.scale
-        #endif
-
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        metalLayer.frame = bounds
-        // Sublayers don't auto-update drawableSize from frame — set explicitly
-        metalLayer.drawableSize = CGSize(
-            width: bounds.width * scale,
-            height: bounds.height * scale
-        )
-        CATransaction.commit()
-
-        // If size actually changed (rotation), force mpv to reinitialize video output
-        if lastBoundsSize != .zero, lastBoundsSize != bounds.size {
-            controller.command("set", args: ["vid", "no"], checkForErrors: false)
-            controller.command("set", args: ["vid", "auto"], checkForErrors: false)
-        }
-        lastBoundsSize = bounds.size
-    }
-
-    deinit {
-        controller.cleanup()
     }
 }

@@ -1,4 +1,5 @@
 {
+  "originHash" : "335bfe7ec07c92f2b82f93357d863a803bc4cad597119da523ecfb566111584f",
   "pins" : [
     {
       "identity" : "blurhashkit",
@@ -153,12 +154,12 @@
       }
     },
     {
-      "identity" : "mpvkit",
+      "identity" : "mpvui",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mpvkit/MPVKit",
+      "location" : "https://github.com/LePips/MPVUI",
       "state" : {
-        "revision" : "288527dffbc6d3e63cce147fc7b520c64a791603",
-        "version" : "1.0.0"
+        "revision" : "67c0a8d44d56dce18531ace856049904cc4f0df4",
+        "version" : "0.3.0"
       }
     },
     {

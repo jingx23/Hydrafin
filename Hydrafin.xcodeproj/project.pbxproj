@@ -91,8 +91,8 @@
 		E176EBE32D0502C6009F4CF1 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E176EBE22D0502C6009F4CF1 /* CollectionHStack */; };
 		E176EBE92D050925009F4CF1 /* CollectionVGrid in Frameworks */ = {isa = PBXBuildFile; productRef = E176EBE82D050925009F4CF1 /* CollectionVGrid */; };
 		E18D6AA62BAA96F000A0D167 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E18D6AA52BAA96F000A0D167 /* CollectionHStack */; };
-		43A6D0462F38D4F500A89054 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0452F38D4F500A89054 /* MPVKit-GPL */; };
-		43A6D0482F38D52100A89054 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0472F38D52100A89054 /* MPVKit-GPL */; };
+		43A6D0462F38D4F500A89054 /* MPVUI in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0452F38D4F500A89054 /* MPVUI */; };
+		43A6D0482F38D52100A89054 /* MPVUI in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0472F38D52100A89054 /* MPVUI */; };
 		E19138CA2E7E7FA20061E464 /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = E19138C92E7E7FA20061E464 /* StatefulMacros */; };
 		E19D41B22BF2BFA50082B8B2 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = E19D41B12BF2BFA50082B8B2 /* KeychainSwift */; };
 		E19DDEC72948EF9900954E10 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = E19DDEC62948EF9900954E10 /* OrderedCollections */; };
@@ -246,7 +246,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				43A6D0482F38D52100A89054 /* MPVKit-GPL in Frameworks */,
+				43A6D0482F38D52100A89054 /* MPVUI in Frameworks */,
 				62666E1727E501CC00EC0ECD /* CFNetwork.framework in Frameworks */,
 				62666E3227E5021E00EC0ECD /* UIKit.framework in Frameworks */,
 				62666E2A27E5020A00EC0ECD /* OpenGLES.framework in Frameworks */,
@@ -323,7 +323,7 @@
 				62666E0227E5016D00EC0ECD /* CoreGraphics.framework in Frameworks */,
 				E12CDBBC2FFB532800828742 /* CollectionVGrid in Frameworks */,
 				E1575E3C293C6B15001665B1 /* Files in Frameworks */,
-				43A6D0462F38D4F500A89054 /* MPVKit-GPL in Frameworks */,
+				43A6D0462F38D4F500A89054 /* MPVUI in Frameworks */,
 				E176EBE02D0502A6009F4CF1 /* CollectionHStack in Frameworks */,
 				E1FADDF12E84B63600FB310E /* StatefulMacros in Frameworks */,
 				E14EA1652BF70A8E00DE757A /* Mantis in Frameworks */,
@@ -492,7 +492,7 @@
 				E19D41B12BF2BFA50082B8B2 /* KeychainSwift */,
 				E1155ACA2D0584A90021557A /* IdentifiedCollections */,
 				BD88CB412D77E6A0006BB5E3 /* TVOSPicker */,
-				43A6D0472F38D52100A89054 /* MPVKit-GPL */,
+				43A6D0472F38D52100A89054 /* MPVUI */,
 				E1E2D7BE2E3FD936004E2E5F /* Transmission */,
 				E1BD95B32FBE8E50001CDA57 /* JellyfinAPI */,
 				E1079FD92FC6FFCE004B5C54 /* StatefulMacros */,
@@ -558,7 +558,7 @@
 				E176EBDF2D0502A6009F4CF1 /* CollectionHStack */,
 				E176EBE22D0502C6009F4CF1 /* CollectionHStack */,
 				E176EBE82D050925009F4CF1 /* CollectionVGrid */,
-				43A6D0452F38D4F500A89054 /* MPVKit-GPL */,
+				43A6D0452F38D4F500A89054 /* MPVUI */,
 				E164308B2E3AA9710028D4E8 /* Transmission */,
 				E13CCE4B2E6C08710070965F /* LNPopupUI-Static */,
 				E11ADE832E7E73B6008074FC /* StatefulMacros */,
@@ -684,7 +684,7 @@
 				E14EA1632BF70A8E00DE757A /* XCRemoteSwiftPackageReference "Mantis" */,
 				E176EBDC2D050067009F4CF1 /* XCRemoteSwiftPackageReference "swift-identified-collections" */,
 				BD88CB402D77E6A0006BB5E3 /* XCRemoteSwiftPackageReference "TVOSPicker" */,
-				43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */,
+				43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVUI" */,
 				E164308A2E3AA9710028D4E8 /* XCRemoteSwiftPackageReference "Transmission" */,
 				E13CCE482E6C077D0070965F /* XCRemoteSwiftPackageReference "LNPopupUI" */,
 				E1BD95B02FBE8E44001CDA57 /* XCRemoteSwiftPackageReference "jellyfin-sdk-swift" */,
@@ -1339,12 +1339,12 @@
 				minimumVersion = 1.1.0;
 			};
 		};
-		43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
+		43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVUI" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mpvkit/MPVKit";
+			repositoryURL = "https://github.com/LePips/MPVUI";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
+				kind = exactVersion;
+				version = 0.3.0;
 			};
 		};
 		E192608128D2D0DB002314B4 /* XCRemoteSwiftPackageReference "Factory" */ = {
@@ -1645,15 +1645,15 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = CollectionHStack;
 		};
-		43A6D0452F38D4F500A89054 /* MPVKit-GPL */ = {
+		43A6D0452F38D4F500A89054 /* MPVUI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
+			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVUI" */;
+			productName = MPVUI;
 		};
-		43A6D0472F38D52100A89054 /* MPVKit-GPL */ = {
+		43A6D0472F38D52100A89054 /* MPVUI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
+			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVUI" */;
+			productName = MPVUI;
 		};
 		E19138C92E7E7FA20061E464 /* StatefulMacros */ = {
 			isa = XCSwiftPackageProductDependency;
