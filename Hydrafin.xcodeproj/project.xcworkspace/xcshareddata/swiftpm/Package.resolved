@@ -1,5 +1,4 @@
 {
-  "originHash" : "1aa4437ea89d9c44d2e5d8e61893555a5422ef2ccd7500d0699bdaa99a5e2037",
   "pins" : [
     {
       "identity" : "blurhashkit",
@@ -25,7 +24,7 @@
       "location" : "https://github.com/LePips/CollectionHStack",
       "state" : {
         "branch" : "main",
-        "revision" : "ce86c82ae46ba958d6e7f8459d592a77e1e299c5"
+        "revision" : "5824801d31b67f89a125013d642cce7d284143c2"
       }
     },
     {
@@ -34,7 +33,7 @@
       "location" : "https://github.com/LePips/CollectionVGrid",
       "state" : {
         "branch" : "main",
-        "revision" : "b6f489c85fbd642295aef64e02d05476d30e10fa"
+        "revision" : "7e4c4d8f20c8534cc5736e46f06265cd3686c944"
       }
     },
     {
@@ -104,8 +103,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/jellyfin/jellyfin-sdk-swift.git",
       "state" : {
-        "revision" : "37a2f5028bd24689b772effb559f72ec5388f021",
-        "version" : "3.0.0"
+        "revision" : "bf2f30b9a17c03da82f47d8faa50a666043f2196",
+        "version" : "3.2.0"
       }
     },
     {

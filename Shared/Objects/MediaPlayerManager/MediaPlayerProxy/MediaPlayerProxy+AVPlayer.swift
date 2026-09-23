@@ -16,7 +16,7 @@ import SwiftUI
 // TODO: After NativeVideoPlayer is removed, can move bindings and
 //       observers to AVPlayerView
 //       - wouldn't need to have MediaPlayerProxy: MediaPlayerObserver
-// TODO: report playback information (dropped frames, etc.)
+// TODO: report playback information
 // TODO: report buffering state
 // TODO: have set seconds with completion handler
 

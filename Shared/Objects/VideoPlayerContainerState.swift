@@ -129,6 +129,15 @@ class VideoPlayerContainerState: ObservableObject {
     @Published
     var isSkipButtonFocused: Bool = false
     #endif
+    var isPresentingMenu: Bool = false {
+        didSet {
+            if isPresentingMenu {
+                timer.stop()
+            } else {
+                timer.poke()
+            }
+        }
+    }
 
     var originalPlaybackRate: Float?
 
@@ -187,7 +196,16 @@ class VideoPlayerContainerState: ObservableObject {
     init() {
         timerCancellable = timer.sink { [weak self] in
             guard let self else { return }
-            guard !isScrubbing, !isPresentingSupplement, manager?.playbackRequestStatus != .paused else { return }
+
+            if containerView?.presentedViewController != nil {
+                timer.poke()
+                return
+            }
+
+            guard !isScrubbing,
+                  !isPresentingSupplement,
+                  !isPresentingMenu,
+                  manager?.playbackRequestStatus != .paused else { return }
 
             withAnimation(.linear(duration: 0.25)) {
                 self.isPresentingOverlay = false

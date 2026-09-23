@@ -115,6 +115,20 @@ extension Defaults.Keys {
             UserKey("mediaItemViewType", default: .enhanced)
         }
 
+        static var itemBarActionButtons: Key<[ItemActionButton]> {
+            UserKey(
+                "itemBarActionButtons",
+                default: ItemActionButton.defaultBarActionButtons
+            )
+        }
+
+        static var itemMenuActionButtons: Key<[ItemActionButton]> {
+            UserKey(
+                "itemMenuActionButtons",
+                default: ItemActionButton.defaultMenuActionButtons
+            )
+        }
+
         static var nextUpPosterType: Key<PosterDisplayType> {
             UserKey("nextUpPosterType", default: .portrait)
         }
@@ -146,6 +160,10 @@ extension Defaults.Keys {
         // TODO: have search poster type by types of items if applicable
         static var searchPosterType: Key<PosterDisplayType> {
             UserKey("searchPosterType", default: .portrait)
+        }
+
+        static var tabBarPlacement: Key<TabBarPlacement> {
+            UserKey("tabBarPlacement", default: .sidebar)
         }
 
         enum Poster {
@@ -393,8 +411,10 @@ extension Defaults.Keys {
     // Experimental settings
     enum Experimental {
 
+        // TODO: don't use L10n key as key, just used to not
+        // lose translations
         static var downloads: Key<Bool> {
-            UserKey("experimentalDownloads", default: false)
+            UserKey(L10n.download, default: false)
         }
 
         static var serverConnectionAutoSwitch: Key<Bool> {

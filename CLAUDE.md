@@ -24,7 +24,7 @@ Upstream uses VLC (via the `VLCUI` SPM package and Carthage `MobileVLCKit.xcfram
 | `Shared/Objects/MediaPlayerManager/AudioUnitFix/AudioUnitChannelLayoutFix.h` | C header for the CoreAudio multichannel/Atmos workaround |
 | `Shared/Objects/MediaPlayerManager/AudioUnitFix/AudioUnitChannelLayoutFix.c` | mach-o symbol-rebinding implementation; called from `MPVController.setupMpv()` |
 | `Shared/Hydrafin-Bridging-Header.h` | Swift ↔ C bridging header (configured via `XcodeConfig/Shared.xcconfig`) |
-| `Shared/Objects/VideoPlayerType/VideoPlayerType.swift` | Has `.mpv` + `.native` cases — upstream has `.native` + `.swiftfin` |
+| `Shared/Objects/VideoPlayerType/VideoPlayerType.swift` | Has `.mpv` + `.native` cases — upstream has `.native` + `.vlc` + (experimental) `.mpv` |
 | `Shared/Objects/VideoPlayerType/VideoPlayerType+MPV.swift` | MPV direct-play, transcoding, and subtitle profiles |
 
 ### Skip Credits / Next Episode (fork-only feature)
@@ -54,7 +54,9 @@ Small fork patches inside upstream files (re-apply after taking upstream):
 - `Swiftfin tvOS/Views/VideoPlayer/PlaybackControls/PlaybackControls.swift` — `showSkipButtons` default, `isSkipButtonFocused` FocusState, `currentSeconds` state, `segmentSkipLayer` in body ZStack, focus-management `onChange` handlers
 - `Shared/Views/SettingsView/VideoPlayerSettingsView.swift` — `showSkipButtons` toggle in the buttons section
 - `Shared/Objects/MediaPlayerManager/MediaPlayerItem/MediaPlayerItem.swift` + `+Build.swift` — `segments` property, populated via `mediaSegmentProvider`
-- Strings: `nextEpisode`, `skipCredits`, `showSkipButton`, `endsAt` in `Strings.swift` + `Translations/*` (plus MPV-specific `playerSwiftfinDescription`/`playerNativeDescription` texts)
+- Strings: `nextEpisode`, `skipCredits`, `showSkipButton`, `endsAt`, `playerMpvDescription`, plus the fork's `playerNativeDescription` text, in `Translations/*/Localizable.strings`. Since the 2026-09 merge `Shared/Strings/Strings.swift` is **generated** (`swift Scripts/Translations/GenerateStrings.swift`, also a build phase) from `Translations/en.lproj/Localizable.strings` — never hand-edit it; add keys to the en `.strings` file (UTF-16, `/// <English value>` doc line above each entry) and regenerate.
+- `Shared/Views/SettingsView/VideoPlayerSettingsView.swift` — player picker iterates `VideoPlayerType.allCases` (upstream uses `supportedCases`, which our enum lacks) and its learn-more shows MPV/`playerMpvDescription`
+- `Shared/Views/SettingsView/ExperimentalSettingsView.swift` + `SwiftfinDefaults.swift` — upstream's "MPV engine" experimental toggle / `Experimental.mpvPlayer` key removed (our MPV is the default, not experimental)
 
 ### MPV-specific defaults
 
@@ -134,13 +136,14 @@ Use this policy for each conflicted file:
 | File | Resolution |
 |------|-----------|
 | `Shared/Views/VideoPlayer/VideoPlayer.swift` | Take upstream, then re-apply the two MPV patches: `MPVMediaPlayerProxy()` in `init`, and the `isIdleTimerDisabled` toggle in `onAppear`/`onDisappear` |
-| `Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+MPV.swift` | Keep HEAD entirely |
-| `Shared/Objects/VideoPlayerType/VideoPlayerType.swift` | Keep HEAD; upstream may add cases that don't exist — ignore them |
+| `Shared/Objects/MediaPlayerManager/MediaPlayerProxy/MediaPlayerProxy+MPV.swift` | Keep HEAD entirely. **Upstream has its own file at this exact path** (same class name `MPVMediaPlayerProxy`, built on `LePips/MPVUI`, which bundles its own libmpv and cannot be linked next to MPVKit). Git shows it as an add/add conflict — restore ours with `git show HEAD:<path> > <path>` (plain `checkout --ours` can leave rename-conflict markers). Before discarding theirs, diff it for new features worth porting to our MPVKit controller (user's standing request). Also drop upstream's `TextSubtitlePresentation.swift` / `TextSubtitleOverlay.swift` (MPVUI-only), `MediaPlayerProxy+VLC.swift`, `VideoPlayerType+VLC.swift` |
+| `Shared/Objects/VideoPlayerType/VideoPlayerType.swift`, `+MPV.swift`, `+Shared.swift` | Keep HEAD; upstream's `.vlc` case and VLC profiles are not used (VLC stays out of Hydrafin — user decision 2026-09) |
+| `Translations/*/Localizable.strings` | Binary (UTF-16) conflicts. Take upstream's file, re-inject the fork keys listed above from HEAD (only values the fork actually changed vs merge base), then regenerate `Strings.swift` |
 | `Shared/Services/SwiftfinDefaults.swift` | Take upstream (to get new keys/style), then change `videoPlayerType` default back to `.mpv` |
-| `Hydrafin.xcodeproj/project.pbxproj` | Take upstream (`git checkout --theirs`), then re-add all MPVKit entries from Step 1 |
+| `Hydrafin.xcodeproj/project.pbxproj` | Take upstream (`git show upstream/main:Swiftfin.xcodeproj/project.pbxproj`), then re-apply fork edits: swap MPVUI ids for the MPVKit ids from Step 1 (upstream `E1900501…0001/0002` build files, `…0003/0004` product deps, `…0005` package ref ↔ our `43A6D046/48`, `43A6D045/47`, `43A6D044`), delete every SwiftVLC and MediaAccessibilityKit entry, rename targets to Hydrafin (but keep the synchronized group `path = "Swiftfin tvOS"`), bundle ID, `DEVELOPMENT_TEAM` on the tvOS target configs, CoreStore revision pin. Diff the result against HEAD's file to confirm only upstream changes remain |
 | `Hydrafin.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` | Take upstream (`git checkout --theirs`), then re-add the `mpvkit` block |
 | `XcodeConfig/Shared.xcconfig` | Take upstream, then restore `PRODUCT_BUNDLE_IDENTIFIER = net.jingx.hydrafin`, `SWIFT_OBJC_BRIDGING_HEADER`, and `HEADER_SEARCH_PATHS` |
-| `Swiftfin tvOS/Resources/Info.plist` | Take upstream, then restore `CFBundledisplayTitle = Hydrafin` |
+| `Swiftfin tvOS/Resources/Info.plist`, `Swiftfin/Resources/Info.plist` | Take upstream, then restore `CFBundleDisplayName = Hydrafin` and the URL scheme list = `hydrafin` only (upstream claims `swiftfin` **and** `jellyfin`; both collide with the real Swiftfin app) |
 | All other files | Take upstream (`git checkout --theirs`) unless you have a specific reason to keep HEAD |
 
 ### Step 3 — check for deleted files that MPV still references

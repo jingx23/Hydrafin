@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		43A6D0462F38D4F500A89054 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0452F38D4F500A89054 /* MPVKit-GPL */; };
-		43A6D0482F38D52100A89054 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0472F38D52100A89054 /* MPVKit-GPL */; };
 		53ABFDDC267972BF00886593 /* TVServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53ABFDDB267972BF00886593 /* TVServices.framework */; };
 		62666DFD27E5014F00EC0ECD /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5362E4AE267D40B5000E2F71 /* AudioToolbox.framework */; };
 		62666DFE27E5015700EC0ECD /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5362E4AA267D40AD000E2F71 /* AVFoundation.framework */; };
@@ -85,11 +83,16 @@
 		E15EFA842BA167350080E926 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E15EFA832BA167350080E926 /* CollectionHStack */; };
 		E15EFA862BA1685F0080E926 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = E15EFA852BA1685F0080E926 /* SwiftUIIntrospect */; };
 		E164308C2E3AA9710028D4E8 /* Transmission in Frameworks */ = {isa = PBXBuildFile; productRef = E164308B2E3AA9710028D4E8 /* Transmission */; };
+		E16C08F4305A350C00895062 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E16C08F3305A350C00895062 /* CollectionHStack */; };
+		E16C08F7305A385900895062 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E16C08F6305A385900895062 /* CollectionHStack */; };
+		E16C08F9305A386900895062 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E16C08F8305A386900895062 /* CollectionHStack */; };
 		E176EBDE2D050067009F4CF1 /* IdentifiedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = E176EBDD2D050067009F4CF1 /* IdentifiedCollections */; };
 		E176EBE02D0502A6009F4CF1 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E176EBDF2D0502A6009F4CF1 /* CollectionHStack */; };
 		E176EBE32D0502C6009F4CF1 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E176EBE22D0502C6009F4CF1 /* CollectionHStack */; };
 		E176EBE92D050925009F4CF1 /* CollectionVGrid in Frameworks */ = {isa = PBXBuildFile; productRef = E176EBE82D050925009F4CF1 /* CollectionVGrid */; };
 		E18D6AA62BAA96F000A0D167 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E18D6AA52BAA96F000A0D167 /* CollectionHStack */; };
+		43A6D0462F38D4F500A89054 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0452F38D4F500A89054 /* MPVKit-GPL */; };
+		43A6D0482F38D52100A89054 /* MPVKit-GPL in Frameworks */ = {isa = PBXBuildFile; productRef = 43A6D0472F38D52100A89054 /* MPVKit-GPL */; };
 		E19138CA2E7E7FA20061E464 /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = E19138C92E7E7FA20061E464 /* StatefulMacros */; };
 		E19D41B22BF2BFA50082B8B2 /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = E19D41B12BF2BFA50082B8B2 /* KeychainSwift */; };
 		E19DDEC72948EF9900954E10 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = E19DDEC62948EF9900954E10 /* OrderedCollections */; };
@@ -97,8 +100,6 @@
 		E19E6E0728A0B958005C10C8 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = E19E6E0628A0B958005C10C8 /* NukeUI */; };
 		E19E6E0A28A0BEFF005C10C8 /* BlurHashKit in Frameworks */ = {isa = PBXBuildFile; productRef = E19E6E0928A0BEFF005C10C8 /* BlurHashKit */; };
 		E19FA1A02E84F0A800F5A60D /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = E19FA19F2E84F0A800F5A60D /* StatefulMacros */; };
-		E1A09F752D05935100835265 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1A09F742D05935100835265 /* CollectionHStack */; };
-		E1A09F792D05935A00835265 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1A09F782D05935A00835265 /* CollectionHStack */; };
 		E1A76F1A2E8369A500A5F2C1 /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = E1A76F192E8369A500A5F2C1 /* StatefulMacros */; };
 		E1A7B1652B9A9F7800152546 /* PreferencesView in Frameworks */ = {isa = PBXBuildFile; productRef = E1A7B1642B9A9F7800152546 /* PreferencesView */; };
 		E1B354BB2FC4BB0600827DC1 /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = E1B354BA2FC4BB0600827DC1 /* StatefulMacros */; };
@@ -116,29 +117,6 @@
 		E1E2D7BF2E3FD936004E2E5F /* Transmission in Frameworks */ = {isa = PBXBuildFile; productRef = E1E2D7BE2E3FD936004E2E5F /* Transmission */; };
 		E1FADDF12E84B63600FB310E /* StatefulMacros in Frameworks */ = {isa = PBXBuildFile; productRef = E1FADDF02E84B63600FB310E /* StatefulMacros */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		62666DF927E5012C00EC0ECD /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 12;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		62666DFC27E5013700EC0ECD /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		535870602669D21600D05A09 /* Hydrafin tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Hydrafin tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -217,14 +195,14 @@
 				ViewModels/AdminDashboard/DevicesViewModel.swift,
 				ViewModels/AdminDashboard/ServerActivityDetailViewModel.swift,
 				ViewModels/AdminDashboard/ServerLogs/ServerLogsViewModel.swift,
-				ViewModels/AdminDashboard/ServerTaskObserver.swift,
-				ViewModels/AdminDashboard/ServerTasksViewModel.swift,
+				ViewModels/AdminDashboard/Tasks/ServerTasksViewModel.swift,
+				ViewModels/AdminDashboard/Tasks/ServerTaskViewModel.swift,
 				ViewModels/AdminDashboard/Users/AddServerUserViewModel.swift,
 				ViewModels/AdminDashboard/Users/ServerUsersViewModel.swift,
-				ViewModels/DownloadListViewModel.swift,
 				ViewModels/ItemAdministration/IdentifyItemViewModel.swift,
 				ViewModels/ItemAdministration/RemoteImageInfoViewModel.swift,
 				ViewModels/QuickConnectAuthorizeViewModel.swift,
+				Views/ItemView/Components/ActionButtons/EditActionButton.swift,
 				Views/VideoPlayer/Components/Toolbar/ActionButtons/GestureLockActionButton.swift,
 			);
 			target = 5358705F2669D21600D05A09 /* Hydrafin tvOS */;
@@ -280,9 +258,9 @@
 				62666E2127E501E400EC0ECD /* CoreVideo.framework in Frameworks */,
 				E1392FED2BA218A80034110D /* SwiftUIIntrospect in Frameworks */,
 				E13AF3B828A0C598009093AB /* NukeExtensions in Frameworks */,
+				E16C08F9305A386900895062 /* CollectionHStack in Frameworks */,
 				E1575E58293E7685001665B1 /* Files in Frameworks */,
 				E1B5F7A729577BCE004B26CF /* Pulse in Frameworks */,
-				E1A09F792D05935A00835265 /* CollectionHStack in Frameworks */,
 				E13AF3BA28A0C598009093AB /* NukeUI in Frameworks */,
 				E1B5F7AB29577BCE004B26CF /* PulseUI in Frameworks */,
 				E1079FDA2FC6FFCE004B5C54 /* StatefulMacros in Frameworks */,
@@ -329,6 +307,7 @@
 				E1B354BB2FC4BB0600827DC1 /* StatefulMacros in Frameworks */,
 				E1B9743B2E86F51D008CED48 /* StatefulMacros in Frameworks */,
 				E10706122942F57D00646DAF /* PulseLogHandler in Frameworks */,
+				E16C08F4305A350C00895062 /* CollectionHStack in Frameworks */,
 				62666E0627E5017A00EC0ECD /* CoreVideo.framework in Frameworks */,
 				E19DDEC72948EF9900954E10 /* OrderedCollections in Frameworks */,
 				E10706102942F57D00646DAF /* Pulse in Frameworks */,
@@ -338,13 +317,13 @@
 				E113A2A72B5A178D009CAAAA /* CollectionHStack in Frameworks */,
 				E19138CA2E7E7FA20061E464 /* StatefulMacros in Frameworks */,
 				E1523F822B132C350062821A /* CollectionHStack in Frameworks */,
-				43A6D0462F38D4F500A89054 /* MPVKit-GPL in Frameworks */,
 				E145EB4B2BE16849003BF6F3 /* KeychainSwift in Frameworks */,
 				E10706142942F57D00646DAF /* PulseUI in Frameworks */,
 				E13CCE4C2E6C08710070965F /* LNPopupUI-Static in Frameworks */,
 				62666E0227E5016D00EC0ECD /* CoreGraphics.framework in Frameworks */,
 				E12CDBBC2FFB532800828742 /* CollectionVGrid in Frameworks */,
 				E1575E3C293C6B15001665B1 /* Files in Frameworks */,
+				43A6D0462F38D4F500A89054 /* MPVKit-GPL in Frameworks */,
 				E176EBE02D0502A6009F4CF1 /* CollectionHStack in Frameworks */,
 				E1FADDF12E84B63600FB310E /* StatefulMacros in Frameworks */,
 				E14EA1652BF70A8E00DE757A /* Mantis in Frameworks */,
@@ -357,6 +336,7 @@
 				E1153DD02BBB634F00424D36 /* SVGKit in Frameworks */,
 				E19FA1A02E84F0A800F5A60D /* StatefulMacros in Frameworks */,
 				E18D6AA62BAA96F000A0D167 /* CollectionHStack in Frameworks */,
+				E16C08F7305A385900895062 /* CollectionHStack in Frameworks */,
 				62666E0127E5016900EC0ECD /* CoreFoundation.framework in Frameworks */,
 				62666E2427E501F300EC0ECD /* Foundation.framework in Frameworks */,
 				E132D3C82BD200C10058A2DF /* CollectionVGrid in Frameworks */,
@@ -381,7 +361,6 @@
 				E134DD2C2E7F4DC300AED027 /* StatefulMacros in Frameworks */,
 				E1A76F1A2E8369A500A5F2C1 /* StatefulMacros in Frameworks */,
 				62666E3F27E5040300EC0ECD /* SystemConfiguration.framework in Frameworks */,
-				E1A09F752D05935100835265 /* CollectionHStack in Frameworks */,
 				E164308C2E3AA9710028D4E8 /* Transmission in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -475,14 +454,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 535870712669D21700D05A09 /* Build configuration list for PBXNativeTarget "Hydrafin tvOS" */;
 			buildPhases = (
-				4EC71FBD2D1620AF00D0B3A8 /* Alphabetize Strings */,
-				6286F0A3271C0ABA00C40ED5 /* Run Swiftgen.swift */,
+				6286F0A3271C0ABA00C40ED5 /* Generate Strings */,
 				BD83D7852B55EEB600652C24 /* Run SwiftFormat */,
 				E1A1B5C42F00000000000002 /* Run SwiftLint */,
 				5358705C2669D21600D05A09 /* Sources */,
 				5358705D2669D21600D05A09 /* Frameworks */,
 				5358705E2669D21600D05A09 /* Resources */,
-				62666DFC27E5013700EC0ECD /* Embed Frameworks */,
+				E19009182F00000000000002 /* Write Git Branch */,
 			);
 			buildRules = (
 			);
@@ -496,7 +474,6 @@
 			);
 			name = "Hydrafin tvOS";
 			packageProductDependencies = (
-				43A6D0472F38D52100A89054 /* MPVKit-GPL */,
 				E13DD3CC27164CA7009D4DAF /* CoreStore */,
 				E12186DD2718F1C50010884C /* Defaults */,
 				E1002B6A2793E36600E47059 /* Algorithms */,
@@ -514,13 +491,14 @@
 				E1153DD12BBB649C00424D36 /* SVGKit */,
 				E19D41B12BF2BFA50082B8B2 /* KeychainSwift */,
 				E1155ACA2D0584A90021557A /* IdentifiedCollections */,
-				E1A09F782D05935A00835265 /* CollectionHStack */,
 				BD88CB412D77E6A0006BB5E3 /* TVOSPicker */,
+				43A6D0472F38D52100A89054 /* MPVKit-GPL */,
 				E1E2D7BE2E3FD936004E2E5F /* Transmission */,
 				E1BD95B32FBE8E50001CDA57 /* JellyfinAPI */,
 				E1079FD92FC6FFCE004B5C54 /* StatefulMacros */,
 				E1BE3EBD2FE8DEAA00327990 /* FactoryKit */,
 				E12CDBC02FFB593800828742 /* CollectionVGrid */,
+				E16C08F8305A386900895062 /* CollectionHStack */,
 			);
 			productName = "JellyfinPlayer tvOS";
 			productReference = 535870602669D21600D05A09 /* Hydrafin tvOS.app */;
@@ -530,14 +508,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5377CC1B263B596B003A4E83 /* Build configuration list for PBXNativeTarget "Hydrafin iOS" */;
 			buildPhases = (
-				4EC71FBC2D16201C00D0B3A8 /* Alphabetize Strings */,
-				6286F09E271C093000C40ED5 /* Run Swiftgen.swift */,
+				6286F09E271C093000C40ED5 /* Generate Strings */,
 				BD0BA2282AD64BB200306A8D /* Run SwiftFormat */,
 				E1A1B5C42F00000000000001 /* Run SwiftLint */,
 				5377CBED263B596A003A4E83 /* Sources */,
 				5377CBEE263B596A003A4E83 /* Frameworks */,
 				5377CBEF263B596A003A4E83 /* Resources */,
-				62666DF927E5012C00EC0ECD /* Embed Frameworks */,
+				E19009182F00000000000001 /* Write Git Branch */,
 			);
 			buildRules = (
 			);
@@ -551,7 +528,6 @@
 			);
 			name = "Hydrafin iOS";
 			packageProductDependencies = (
-				43A6D0452F38D4F500A89054 /* MPVKit-GPL */,
 				E13DD3C52716499E009D4DAF /* CoreStore */,
 				E13DD3D227168E65009D4DAF /* Defaults */,
 				E1002B672793CFBA00E47059 /* Algorithms */,
@@ -582,7 +558,7 @@
 				E176EBDF2D0502A6009F4CF1 /* CollectionHStack */,
 				E176EBE22D0502C6009F4CF1 /* CollectionHStack */,
 				E176EBE82D050925009F4CF1 /* CollectionVGrid */,
-				E1A09F742D05935100835265 /* CollectionHStack */,
+				43A6D0452F38D4F500A89054 /* MPVKit-GPL */,
 				E164308B2E3AA9710028D4E8 /* Transmission */,
 				E13CCE4B2E6C08710070965F /* LNPopupUI-Static */,
 				E11ADE832E7E73B6008074FC /* StatefulMacros */,
@@ -600,6 +576,8 @@
 				E1240A282FEA4F69004E6588 /* StatefulMacros */,
 				E12CDBBB2FFB532800828742 /* CollectionVGrid */,
 				E12CDBBE2FFB592A00828742 /* CollectionVGrid */,
+				E16C08F3305A350C00895062 /* CollectionHStack */,
+				E16C08F6305A385900895062 /* CollectionHStack */,
 			);
 			productName = JellyfinPlayer;
 			productReference = 5377CBF1263B596A003A4E83 /* Hydrafin iOS.app */;
@@ -690,7 +668,6 @@
 			mainGroup = 5377CBE8263B596A003A4E83;
 			packageReferences = (
 				5335256F265EA0A0006CCA86 /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */,
-				43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */,
 				E13DD3C42716499E009D4DAF /* XCRemoteSwiftPackageReference "CoreStore" */,
 				E13DD3D127168E65009D4DAF /* XCRemoteSwiftPackageReference "Defaults" */,
 				E1002B662793CFBA00E47059 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
@@ -706,13 +683,14 @@
 				E145EB492BE16849003BF6F3 /* XCRemoteSwiftPackageReference "keychain-swift" */,
 				E14EA1632BF70A8E00DE757A /* XCRemoteSwiftPackageReference "Mantis" */,
 				E176EBDC2D050067009F4CF1 /* XCRemoteSwiftPackageReference "swift-identified-collections" */,
-				E1A09F732D05935100835265 /* XCRemoteSwiftPackageReference "CollectionHStack" */,
 				BD88CB402D77E6A0006BB5E3 /* XCRemoteSwiftPackageReference "TVOSPicker" */,
+				43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */,
 				E164308A2E3AA9710028D4E8 /* XCRemoteSwiftPackageReference "Transmission" */,
 				E13CCE482E6C077D0070965F /* XCRemoteSwiftPackageReference "LNPopupUI" */,
 				E1BD95B02FBE8E44001CDA57 /* XCRemoteSwiftPackageReference "jellyfin-sdk-swift" */,
 				E1240A272FEA4F69004E6588 /* XCRemoteSwiftPackageReference "StatefulMacro" */,
 				E12CDBBD2FFB592A00828742 /* XCRemoteSwiftPackageReference "CollectionVGrid" */,
+				E16C08F5305A385900895062 /* XCRemoteSwiftPackageReference "CollectionHStack" */,
 			);
 			productRefGroup = 5377CBF2263B596A003A4E83 /* Products */;
 			projectDirPath = "";
@@ -742,47 +720,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		4EC71FBC2D16201C00D0B3A8 /* Alphabetize Strings */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Translations/en.lproj/Localizable.strings",
-			);
-			name = "Alphabetize Strings";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/alphabetizeStrings.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "xcrun --sdk macosx swift \"${SRCROOT}/Scripts/Translations/AlphabetizeStrings.swift\"\n";
-		};
-		4EC71FBD2D1620AF00D0B3A8 /* Alphabetize Strings */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Translations/en.lproj/Localizable.strings",
-			);
-			name = "Alphabetize Strings";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/alphabetizeStrings.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "xcrun --sdk macosx swift \"${SRCROOT}/Scripts/Translations/AlphabetizeStrings.swift\"\n";
-		};
-		6286F09E271C093000C40ED5 /* Run Swiftgen.swift */ = {
+		6286F09E271C093000C40ED5 /* Generate Strings */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -791,17 +729,19 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/Translations/en.lproj/Localizable.strings",
+				"$(SRCROOT)/Scripts/Translations/GenerateStrings.swift",
 			);
-			name = "Run Swiftgen.swift";
+			name = "Generate Strings";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Add Homebrew to the path to support Apple Silicon Homebrew SwiftGen installations\nexport PATH=/opt/homebrew/bin:$PATH\n\nif which swiftgen >/dev/null; then\n  swiftgen\nelse\n  echo \"error: SwiftGen not installed, check contributing.md for installation instructions.\"\n  return 1\nfi\n";
+			shellScript = "set -eu\ncd \"${SRCROOT}\"\nxcrun --sdk macosx swift \"${SRCROOT}/Scripts/Translations/GenerateStrings.swift\"\n";
 		};
-		6286F0A3271C0ABA00C40ED5 /* Run Swiftgen.swift */ = {
+		6286F0A3271C0ABA00C40ED5 /* Generate Strings */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -810,15 +750,17 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/Translations/en.lproj/Localizable.strings",
+				"$(SRCROOT)/Scripts/Translations/GenerateStrings.swift",
 			);
-			name = "Run Swiftgen.swift";
+			name = "Generate Strings";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Add Homebrew to the path to support Apple Silicon Homebrew SwiftGen installations\nexport PATH=/opt/homebrew/bin:$PATH \n\nif which swiftgen >/dev/null; then\n  swiftgen\nelse\n  echo \"error: SwiftGen not installed, check contributing.md for installation instructions.\"\n  return 1\nfi\n";
+			shellScript = "set -eu\ncd \"${SRCROOT}\"\nxcrun --sdk macosx swift \"${SRCROOT}/Scripts/Translations/GenerateStrings.swift\"\n";
 		};
 		BD0BA2282AD64BB200306A8D /* Run SwiftFormat */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -857,6 +799,40 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Add Homebrew to the path to support Apple Silicon Homebrew SwiftFormat installations\nexport PATH=/opt/homebrew/bin:$PATH\n\n# Skip phase if the action is not build (ie. analyze, archive, etc).\nif [ \"$ACTION\" != \"build\" ]; then\n    exit 0\nfi\n\nif which swiftformat >/dev/null; then\n    swiftformat .\nelse\n    echo \"error: SwiftFormat not installed, check contributing.md for installation instructions.\"\nfi\n";
+		};
+		E19009182F00000000000001 /* Write Git Branch */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Scripts/WriteGitBranch.sh",
+			);
+			name = "Write Git Branch";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GitBranch.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${SRCROOT}/Scripts/WriteGitBranch.sh\"\n";
+		};
+		E19009182F00000000000002 /* Write Git Branch */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Scripts/WriteGitBranch.sh",
+			);
+			name = "Write Git Branch";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GitBranch.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${SRCROOT}/Scripts/WriteGitBranch.sh\"\n";
 		};
 		E1A1B5C42F00000000000001 /* Run SwiftLint */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1227,14 +1203,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mpvkit/MPVKit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
 		5335256F265EA0A0006CCA86 /* XCRemoteSwiftPackageReference "SwiftUI-Introspect" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/siteline/SwiftUI-Introspect";
@@ -1355,12 +1323,28 @@
 				minimumVersion = 2.13.4;
 			};
 		};
+		E16C08F5305A385900895062 /* XCRemoteSwiftPackageReference "CollectionHStack" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/LePips/CollectionHStack";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		E176EBDC2D050067009F4CF1 /* XCRemoteSwiftPackageReference "swift-identified-collections" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-identified-collections";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.1.0;
+			};
+		};
+		43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mpvkit/MPVKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
 			};
 		};
 		E192608128D2D0DB002314B4 /* XCRemoteSwiftPackageReference "Factory" */ = {
@@ -1395,20 +1379,12 @@
 				minimumVersion = 2.0.0;
 			};
 		};
-		E1A09F732D05935100835265 /* XCRemoteSwiftPackageReference "CollectionHStack" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/LePips/CollectionHStack";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		E1BD95B02FBE8E44001CDA57 /* XCRemoteSwiftPackageReference "jellyfin-sdk-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jellyfin/jellyfin-sdk-swift.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 3.0.0;
+				minimumVersion = 3.1.0;
 			};
 		};
 		E1DC9812296DC06200982F06 /* XCRemoteSwiftPackageReference "PulseLogHandler" */ = {
@@ -1422,16 +1398,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		43A6D0452F38D4F500A89054 /* MPVKit-GPL */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
-		};
-		43A6D0472F38D52100A89054 /* MPVKit-GPL */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = "MPVKit-GPL";
-		};
 		BD88CB412D77E6A0006BB5E3 /* TVOSPicker */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BD88CB402D77E6A0006BB5E3 /* XCRemoteSwiftPackageReference "TVOSPicker" */;
@@ -1643,6 +1609,20 @@
 			package = E164308A2E3AA9710028D4E8 /* XCRemoteSwiftPackageReference "Transmission" */;
 			productName = Transmission;
 		};
+		E16C08F3305A350C00895062 /* CollectionHStack */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CollectionHStack;
+		};
+		E16C08F6305A385900895062 /* CollectionHStack */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E16C08F5305A385900895062 /* XCRemoteSwiftPackageReference "CollectionHStack" */;
+			productName = CollectionHStack;
+		};
+		E16C08F8305A386900895062 /* CollectionHStack */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E16C08F5305A385900895062 /* XCRemoteSwiftPackageReference "CollectionHStack" */;
+			productName = CollectionHStack;
+		};
 		E176EBDD2D050067009F4CF1 /* IdentifiedCollections */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E176EBDC2D050067009F4CF1 /* XCRemoteSwiftPackageReference "swift-identified-collections" */;
@@ -1664,6 +1644,16 @@
 		E18D6AA52BAA96F000A0D167 /* CollectionHStack */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CollectionHStack;
+		};
+		43A6D0452F38D4F500A89054 /* MPVKit-GPL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */;
+			productName = "MPVKit-GPL";
+		};
+		43A6D0472F38D52100A89054 /* MPVKit-GPL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 43A6D0442F38D4F500A89054 /* XCRemoteSwiftPackageReference "MPVKit" */;
+			productName = "MPVKit-GPL";
 		};
 		E19138C92E7E7FA20061E464 /* StatefulMacros */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1697,16 +1687,6 @@
 		E19FA19F2E84F0A800F5A60D /* StatefulMacros */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = StatefulMacros;
-		};
-		E1A09F742D05935100835265 /* CollectionHStack */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E1A09F732D05935100835265 /* XCRemoteSwiftPackageReference "CollectionHStack" */;
-			productName = CollectionHStack;
-		};
-		E1A09F782D05935A00835265 /* CollectionHStack */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E1A09F732D05935100835265 /* XCRemoteSwiftPackageReference "CollectionHStack" */;
-			productName = CollectionHStack;
 		};
 		E1A76F192E8369A500A5F2C1 /* StatefulMacros */ = {
 			isa = XCSwiftPackageProductDependency;

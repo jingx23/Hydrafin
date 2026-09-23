@@ -70,7 +70,8 @@ extension SeriesEpisodeContentGroup {
                 },
                 contextMenuItem: episode
             ) {
-                ImageView(episode.landscapeImageSources(
+                ImageView(episode.imageSources(
+                    for: .landscape,
                     environment: .init(maxWidth: 250)
                 ))
                 .failure {
@@ -114,6 +115,9 @@ extension SeriesEpisodeContentGroup {
                         }
                     }
                     .posterStyle(.landscape)
+                    #if os(tvOS)
+                    .posterCornerRadius(.landscape)
+                    #endif
                     .subtleShadow()
             }
         }
@@ -176,6 +180,7 @@ extension SeriesEpisodeContentGroup {
         var body: some View {
             VStack(alignment: .leading) {
                 artworkButton
+                    .posterAspectRatio(.landscape, contentMode: .fit)
 
                 Button(action: contentAction) {
                     EpisodeMetadataView(
@@ -186,14 +191,14 @@ extension SeriesEpisodeContentGroup {
                 }
                 .foregroundStyle(.primary, .secondary)
                 #if os(tvOS)
-                    .buttonStyle(
-                        EpisodeContentButtonStyle(
-                            showsMaterial: focusedElement != nil,
-                            isFocused: focusedElement == .content
-                        )
+                .buttonStyle(
+                    EpisodeContentButtonStyle(
+                        showsMaterial: focusedElement != nil,
+                        isFocused: focusedElement == .content
                     )
+                )
                 #endif
-                    .focused($focusedElement, equals: .content)
+                .focused($focusedElement, equals: .content)
             }
             .focusSection()
             .defaultFocus(
@@ -201,6 +206,7 @@ extension SeriesEpisodeContentGroup {
                 .artwork,
                 priority: .userInitiated
             )
+            .frame(maxHeight: .infinity, alignment: .top)
         }
     }
 
