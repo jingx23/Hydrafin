@@ -429,6 +429,12 @@ extension MPVMediaPlayerProxy: MPVControllerDelegate {
         }
     }
 
+    nonisolated func mpvController(_ controller: MPVController, didUpdateDroppedFrames droppedFrames: Int) {
+        Task { @MainActor in
+            self.droppedFrames.value = droppedFrames
+        }
+    }
+
     nonisolated func mpvController(_ controller: MPVController, didChangePlaybackState state: MPVPlaybackState) {
         Task { @MainActor in
             switch state {
@@ -488,6 +494,7 @@ enum MPVPlaybackState {
 @MainActor
 protocol MPVControllerDelegate: AnyObject {
     nonisolated func mpvController(_ controller: MPVController, didUpdateSeconds seconds: Double, videoSize: CGSize)
+    nonisolated func mpvController(_ controller: MPVController, didUpdateDroppedFrames droppedFrames: Int)
     nonisolated func mpvController(_ controller: MPVController, didChangePlaybackState state: MPVPlaybackState)
 }
 
@@ -579,6 +586,10 @@ class MPVController: @unchecked Sendable {
         // completely silent — video keeps playing and nothing surfaces in the
         // UI — so report it explicitly.
         mpv_observe_property(mpv, 7, "current-ao", MPV_FORMAT_STRING)
+        // Feed the Playback Information "Dropped frames" row. mpv has no
+        // counterpart to VLC's corrupted-frame statistic, so that row stays 0.
+        mpv_observe_property(mpv, 8, "frame-drop-count", MPV_FORMAT_INT64)
+        mpv_observe_property(mpv, 9, "decoder-frame-drop-count", MPV_FORMAT_INT64)
 
         mpv_set_wakeup_callback(mpv, { ctx in
             guard let ctx else { return }
@@ -835,6 +846,8 @@ class MPVController: @unchecked Sendable {
 
     private var videoWidth: Int64 = 0
     private var videoHeight: Int64 = 0
+    private var outputDroppedFrames: Int64 = 0
+    private var decoderDroppedFrames: Int64 = 0
 
     private func getDouble(_ name: String) -> Double {
         guard mpv != nil else { return 0.0 }
@@ -945,6 +958,16 @@ class MPVController: @unchecked Sendable {
         case "video-params/h":
             if property.format == MPV_FORMAT_INT64, let data = property.data {
                 videoHeight = data.assumingMemoryBound(to: Int64.self).pointee
+            }
+        case "frame-drop-count", "decoder-frame-drop-count":
+            if property.format == MPV_FORMAT_INT64, let data = property.data {
+                let count = data.assumingMemoryBound(to: Int64.self).pointee
+                if propertyName == "frame-drop-count" {
+                    outputDroppedFrames = count
+                } else {
+                    decoderDroppedFrames = count
+                }
+                delegate?.mpvController(self, didUpdateDroppedFrames: Int(outputDroppedFrames + decoderDroppedFrames))
             }
         case "current-ao":
             if property.format == MPV_FORMAT_STRING, let data = property.data {
